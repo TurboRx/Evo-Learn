@@ -12,7 +12,9 @@ def load_data(data_path: str) -> pd.DataFrame:
     """Load and preprocess the dataset."""
     try:
         data = pd.read_csv(data_path)
+        logging.info(f"Data shape after loading: {data.shape}")
         data = data.dropna()
+        logging.info(f"Data shape after dropping NAs: {data.shape}")
         return data
     except FileNotFoundError:
         logging.error(f"File not found: {data_path}")
@@ -29,7 +31,9 @@ def split_data(data: pd.DataFrame, target_column: str, test_size: float, random_
     try:
         X = data.drop(target_column, axis=1)
         y = data[target_column]
-        return train_test_split(X, y, test_size=test_size, random_state=random_state)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+        logging.info(f"Training data shape: {X_train.shape}, Testing data shape: {X_test.shape}")
+        return X_train, X_test, y_train, y_test
     except KeyError:
         logging.error(f"Target column '{target_column}' not found in data")
         raise
