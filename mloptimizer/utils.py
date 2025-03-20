@@ -1,18 +1,17 @@
-# mloptimizer/utils.py
-
 import time
+from typing import Callable, Any
 
-def timer(func):
+def timer(func: Callable) -> Callable:
     """
     Decorator to measure the execution time of a function.
 
     Args:
-        func (callable): Function to be timed.
+        func (Callable): Function to be timed.
 
     Returns:
-        callable: Wrapped function.
+        Callable: Wrapped function.
     """
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
