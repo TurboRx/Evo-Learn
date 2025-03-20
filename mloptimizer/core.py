@@ -52,20 +52,13 @@ def run_automl(data_path: str, target_column: str, generations: int = 5, populat
     Returns:
         float: Accuracy of the best model on the test set.
     """
-    if generations <= 0 or population_size <= 0:
-        logging.error("Generations and population size must be positive integers")
-        return 0.0
-
     data = load_data(data_path)
     X_train, X_test, y_train, y_test = split_data(data, target_column, test_size, random_state)
 
     tpot = TPOTClassifier(generations=generations, population_size=population_size, verbosity=2, random_state=random_state)
     tpot.fit(X_train, y_train)
 
-    y_pred = tpot.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    logging.info(f'Accuracy: {accuracy}')
-
+    accuracy = accuracy_score(y_test, tpot.predict(X_test))
     tpot.export('mloptimizer/models/best_model.py')
-    logging.info("The best model has been exported to mloptimizer/models/best_model.py")
+    logging.info(f"AutoML Accuracy: {accuracy}")
     return accuracy
