@@ -1,51 +1,11 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-
-# Load the dataset
-df = pd.read_csv('examples/data/your_dataset.csv')
-
-# Handle missing values: Impute missing values with the median for numerical features and the most frequent value for categorical features
-numeric_features = ['feature1', 'feature2']
-categorical_features = ['categorical_feature1', 'categorical_feature2']
-
-numeric_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='median')),
-    ('scaler', StandardScaler())
-])
-
-categorical_transformer = Pipeline(steps=[
-    ('imputer', SimpleImputer(strategy='most_frequent')),
-    ('onehot', OneHotEncoder(handle_unknown='ignore'))
-])
-
-# Combine preprocessing steps
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('num', numeric_transformer, numeric_features),
-        ('cat', categorical_transformer, categorical_features)
-    ])
-
-# Define the full pipeline
-pipeline = Pipeline(steps=[('preprocessor', preprocessor)])
-
-# Define features and target
-X = df.drop('target', axis=1)
-y = df['target']
-
-# Split the data into train and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Fit and transform the training data
-X_train_preprocessed = pipeline.fit_transform(X_train)
-
-# Transform the test data
-X_test_preprocessed = pipeline.transform(X_test)
-
-# The preprocessed data is now ready for model training
-# You can now save the preprocessed data or use it directly for training your model
-pd.DataFrame(X_train_preprocessed).to_csv('examples/data/your_dataset_preprocessed_train.csv', index=False)
-pd.DataFrame(X_test_preprocessed).to_csv('examples/data/your_dataset_preprocessed_test.csv', index=False)
+feature1,feature2,categorical_feature1,categorical_feature2,target
+1.0,2.5,A,X,0
+2.0,3.0,B,Y,1
+3.0,3.5,A,Z,0
+4.0,4.0,C,X,1
+5.0,4.5,B,Y,0
+6.0,5.0,C,Z,1
+7.0,5.5,A,X,0
+8.0,6.0,B,Y,1
+9.0,6.5,C,Z,0
+10.0,7.0,A,X,1
