@@ -1,5 +1,3 @@
-# mloptimizer/__init__.py
-
 """
 ML-Optimizer: An automated machine learning tool.
 
