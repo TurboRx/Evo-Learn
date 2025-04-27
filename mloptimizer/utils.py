@@ -1,20 +1,42 @@
 import time
+import logging
 from typing import Callable, Any
 
-def timer(func: Callable) -> Callable:
+# Configure the logger
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+def timer(unit: str = "seconds", log_level: int = logging.INFO) -> Callable:
     """
-    Decorator to measure the execution time of a function.
+    Advanced decorator to measure the execution time of a function.
 
     Args:
-        func (Callable): Function to be timed.
+        unit (str): Unit of time to display ('seconds' or 'milliseconds'). Default is 'seconds'.
+        log_level (int): Logging level for the timing information. Default is logging.INFO.
 
     Returns:
-        Callable: Wrapped function.
+        Callable: A decorator for measuring execution time.
     """
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        print(f"{func.__name__} executed in {end_time - start_time:.2f} seconds")
-        return result
-    return wrapper
+    def decorator(func: Callable) -> Callable:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            start_time = time.time()
+            try:
+                result = func(*args, **kwargs)
+                end_time = time.time()
+                elapsed_time = (end_time - start_time) * 1000 if unit == "milliseconds" else (end_time - start_time)
+                unit_label = "ms" if unit == "milliseconds" else "s"
+
+                logger.log(log_level, f"Function '{func.__name__}' executed in {elapsed_time:.2f} {unit_label}")
+                logger.log(log_level, f"Arguments: args={args}, kwargs={kwargs}")
+
+                return result
+            except Exception as e:
+                end_time = time.time()
+                elapsed_time = (end_time - start_time) * 1000 if unit == "milliseconds" else (end_time - start_time)
+                unit_label = "ms" if unit == "milliseconds" else "s"
+
+                logger.error(f"Function '{func.__name__}' failed after {elapsed_time:.2f} {unit_label}")
+                logger.exception(e)
+                raise
+        return wrapper
+    return decorator
