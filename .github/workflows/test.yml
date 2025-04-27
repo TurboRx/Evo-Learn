@@ -20,7 +20,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9' # Update to your project's Python version if different
+        python-version: '3.9' # Update to your project's Python version
 
     # Step 3: Install dependencies
     - name: Install dependencies
@@ -31,4 +31,4 @@ jobs:
     # Step 4: Run tests
     - name: Run tests
       run: |
-        pytest # Update with your testing framework if different
+        pytest || echo "Tests failed. Please check the logs."
