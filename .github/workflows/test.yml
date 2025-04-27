@@ -1,0 +1,35 @@
+name: Pull Request and Push Workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Node.js (if the project is JavaScript/TypeScript-based)
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: npm install
+
+    # Step 4: Run tests
+    - name: Run tests
+      run: npm test
+
+    # Step 5: Build the project (optional, if applicable)
+    - name: Build project
+      run: npm run build
