@@ -16,7 +16,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Step 2: Set up Node.js (if the project is JavaScript/TypeScript-based)
+    # Step 2: Set up Node.js
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
@@ -29,7 +29,3 @@ jobs:
     # Step 4: Run tests
     - name: Run tests
       run: npm test
-
-    # Step 5: Build the project (optional, if applicable)
-    - name: Build project
-      run: npm run build
