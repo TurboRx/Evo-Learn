@@ -1,0 +1,217 @@
+name: Auto Update
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly at midnight on Sunday
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  verify-repository:
+    name: Verify Repository Structure
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install required packages directly
+        pip install numpy pandas scikit-learn matplotlib seaborn tpot
+    
+    - name: Verify repository structure
+      run: |
+        # Create verification script
+        cat > verify_repo.py << 'EOL'
+        """
+        Repository Structure Verification Script
+        
+        This script verifies that the repository has the correct structure and all required files.
+        """
+        import os
+        import sys
+        
+        # Define required files and directories
+        REQUIRED_FILES = [
+            "enhanced_core.py",
+            "enhanced_utils.py",
+            "enhanced_visualization.py",
+            "enhanced_README.md",
+            "evo_learn_cli.py",
+            "LICENSE"
+        ]
+        
+        REQUIRED_DIRS = [
+            "mloptimizer",
+            ".github/workflows"
+        ]
+        
+        def verify_repo_structure():
+            """Verify the repository structure"""
+            errors = []
+            warnings = []
+            
+            # Check required files
+            for file in REQUIRED_FILES:
+                if not os.path.isfile(file):
+                    errors.append(f"Required file '{file}' is missing")
+            
+            # Check required directories
+            for directory in REQUIRED_DIRS:
+                if not os.path.isdir(directory):
+                    errors.append(f"Required directory '{directory}' is missing")
+            
+            # Check mloptimizer module structure
+            if os.path.isdir("mloptimizer"):
+                if not os.path.isfile("mloptimizer/__init__.py"):
+                    errors.append("mloptimizer/__init__.py is missing")
+                if not os.path.isfile("mloptimizer/core.py"):
+                    errors.append("mloptimizer/core.py is missing")
+            
+            # Check for tests
+            if not os.path.isdir("tests") and not any(f.startswith("test_") for f in os.listdir(".")):
+                warnings.append("No tests directory or test files found")
+            
+            # Check for documentation
+            if not os.path.isfile("README.md"):
+                warnings.append("README.md file is missing")
+            
+            # Output results
+            if errors:
+                print("❌ Repository verification failed with errors:")
+                for error in errors:
+                    print(f" - {error}")
+                return False
+            
+            if warnings:
+                print("⚠️ Repository verification passed with warnings:")
+                for warning in warnings:
+                    print(f" - {warning}")
+            else:
+                print("✅ Repository verification passed without warnings")
+            
+            return True
+        
+        if __name__ == "__main__":
+            success = verify_repo_structure()
+            sys.exit(0 if success else 1)
+        EOL
+        
+        # Run the verification script
+        python verify_repo.py
+
+  generate-documentation:
+    name: Generate Documentation
+    needs: verify-repository
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mkdocs mkdocs-material
+        # Install required packages directly
+        pip install numpy pandas scikit-learn matplotlib seaborn tpot
+    
+    - name: Generate documentation
+      run: |
+        # Create docs directory
+        mkdir -p docs
+        
+        # Copy enhanced README as index
+        if [ -f enhanced_README.md ]; then
+          cp enhanced_README.md docs/index.md
+        elif [ -f README.md ]; then
+          cp README.md docs/index.md
+        else
+          echo "# Evo-Learn" > docs/index.md
+          echo "Advanced Automated Machine Learning Tool" >> docs/index.md
+        fi
+        
+        # Create usage documentation
+        cat > docs/usage.md << 'EOL'
+        # Using Evo-Learn
+        
+        Evo-Learn is an automated machine learning tool built on top of TPOT. This guide will show you how to use it effectively.
+        
+        ## Installation
+        
+        ```bash
+        pip install numpy pandas scikit-learn matplotlib seaborn tpot
+        ```
+        
+        ## Basic Usage
+        
+        ```python
+        from enhanced_core import run_automl
+        
+        # Run AutoML for classification
+        results = run_automl(
+            data_path="your_dataset.csv",
+            target_column="target",
+            task="classification",
+            generations=5,
+            population_size=20
+        )
+        
+        # Access the best model
+        best_model = results["model"]
+        ```
+        
+        ## Using the Command-Line Interface
+        
+        Evo-Learn comes with a command-line interface for easy use:
+        
+        ```bash
+        python evo_learn_cli.py train --data your_dataset.csv --target target --task classification
+        ```
+        EOL
+        
+        # Create mkdocs config
+        cat > mkdocs.yml << 'EOL'
+        site_name: Evo-Learn Documentation
+        theme:
+          name: material
+          palette:
+            primary: indigo
+            accent: amber
+        nav:
+          - Home: index.md
+          - Usage Guide: usage.md
+        markdown_extensions:
+          - pymdownx.highlight
+          - pymdownx.superfences
+        EOL
+        
+        # Build documentation
+        mkdocs build
+    
+    - name: Create Pull Request for documentation
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "Generate documentation"
+        title: "Update documentation"
+        body: |
+          This is an automated PR to update the project documentation.
+          
+          The following changes were made:
+          - Generated MkDocs documentation
+          - Updated usage guide
+          
+          Please review and merge if appropriate.
+        branch: update-documentation
+        base: main
