@@ -1,121 +1,113 @@
-# Evo Learn
+# Evo-Learn Enhancement Project
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+This project consists of two main components:
 
-Evo Learn is an open-source automated machine learning (AutoML) tool designed to streamline the model selection and hyperparameter tuning process. Leveraging the power of TPOT (Tree-based Pipeline Optimization Tool), Evo Learn empowers users to quickly identify optimal machine learning pipelines, saving valuable time and resources.
+1. **Evo-Learn Enhancements** - A set of improved files and new functionality for the Evo-Learn automated machine learning tool.
+2. **Verification Web Interface** - A web application to verify, test, and showcase the Evo-Learn repository.
 
-## Features
+## Evo-Learn Enhancements
 
-* **Automated Model Selection:** Automatically searches for the best machine learning models and their hyperparameters.
-* **Data Preprocessing:** Includes functions for handling missing values and encoding categorical features.
-* **TPOT Integration:** Seamlessly integrates with TPOT for robust pipeline optimization.
-* **Easy-to-Use Interface:** Provides an advanced Python API for quick integration into existing workflows.
-* **Model Export:** Exports the best-performing model as a Python script for easy deployment.
-* **Unit Testing:** Includes comprehensive unit tests to ensure code reliability.
+The enhanced files provide significant improvements to the original Evo-Learn repository:
 
-## Installation
+- **Enhanced Core Functionality**
+  - Extended automated machine learning capabilities
+  - Improved model selection and evaluation
+  - Better support for classification and regression tasks
+  - Advanced hyperparameter tuning
 
-1.  **Clone the repository:**
+- **Enhanced Utilities**
+  - Advanced timing and performance tracking
+  - Improved error handling and validation
+  - Cross-validation utilities
+  - Model metadata management
 
-    ```bash
-    git clone https://github.com/TurboRx/Evo-Learn.git
-    cd Evo-Learn
-    ```
+- **Enhanced Visualization**
+  - Feature distribution visualization
+  - Correlation matrix heatmaps
+  - Confusion matrices and ROC curves
+  - Learning curve analysis
+  - Feature importance plots
 
-2.  **Install the dependencies:**
+- **Command Line Interface**
+  - User-friendly command-line tool
+  - Easy model training, evaluation, and prediction
+  - Visualization creation
+  - Comprehensive help and documentation
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+- **Improved Documentation**
+  - Enhanced README.md with detailed usage instructions
+  - API documentation for all functions
+  - Code examples for common tasks
+  - Installation and requirements information
 
-## Quick Start
+## GitHub Update Tool
 
-### Prepare Your Dataset
+The `github_update.py` script enables automated updating of the Evo-Learn repository via the GitHub API. It can:
 
-Ensure your dataset is in CSV format and place it in the `examples/data/` directory.
+- Create new branches
+- Update multiple files
+- Commit changes
+- Create pull requests
 
-### Run the Example Script
-
-```python
-from mloptimizer.core import run_automl
-from mloptimizer.preprocessing import preprocess_data
-
-# Example usage
-data_path = 'examples/data/your_dataset.csv'
-target_column = 'target'
-categorical_features = ['categorical_feature1', 'categorical_feature2']  # Replace with your actual features
-
-# Preprocess the data
-preprocessed_data = preprocess_data(data_path, categorical_features)
-preprocessed_data.to_csv('examples/data/preprocessed_data.csv', index=False)
-
-# Run AutoML
-accuracy = run_automl('examples/data/preprocessed_data.csv', target_column, generations=5, population_size=20)
-
-print(f"AutoML Accuracy: {accuracy}")
+Usage:
+```bash
+python github_update.py --token YOUR_GITHUB_TOKEN --owner OWNER_NAME --repo REPO_NAME --files enhanced_core.py enhanced_utils.py enhanced_visualization.py evo_learn_cli.py enhanced_README.md
 ```
 
-Replace `'target'`, `'categorical_feature1'`, and `'categorical_feature2'` with your actual column names.
+## Quick Verification
 
-### View the Exported Model
-
-The best-performing model will be exported to `mloptimizer/models/best_model.py`.
-
-## Advanced Usage
-
-### Customizing the Search Space
-
-You can customize the search space for the TPOT optimization process by modifying the configuration dictionary.
-
-```python
-from tpot import TPOTClassifier
-
-custom_config = {
-    'sklearn.ensemble.RandomForestClassifier': {
-        'n_estimators': [100, 200],
-        'max_features': ['auto', 'sqrt', 'log2'],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'bootstrap': [True, False]
-    },
-    # Add more custom configurations here
-}
-
-tpot = TPOTClassifier(config_dict=custom_config, generations=5, population_size=20, verbosity=2)
-tpot.fit(X_train, y_train)
-```
-
-### Using Custom Scoring Metrics
-
-You can define and use custom scoring metrics for the optimization process.
-
-```python
-from sklearn.metrics import make_scorer, f1_score
-
-custom_scorer = make_scorer(f1_score, average='weighted')
-
-tpot = TPOTClassifier(generations=5, population_size=20, scoring=custom_scorer, verbosity=2)
-tpot.fit(X_train, y_train)
-```
-
-## Running Tests
-
-To run the unit tests, navigate to the `tests` directory and execute:
+You can quickly verify your Evo-Learn installation using the included verification script:
 
 ```bash
-python -m unittest
+python verify_evo_learn.py
 ```
 
-## Contributing
+This script checks:
+- Required package dependencies
+- Core module availability
+- Module imports
 
-Contributions are welcome! Please follow these steps:
+If successful, you'll see a "Verification PASSED" message indicating your environment is properly set up.
 
-1.  Fork the repository.
-2.  Create a new branch for your feature or bug fix.
-3.  Commit your changes.
-4.  Push to your branch.
-5.  Submit a pull request.
+## Verification Web Interface
+
+The web interface allows users to:
+
+1. Verify the Evo-Learn repository
+2. Test core functionality
+3. View verification results
+4. Access documentation for enhanced features
+
+### Running the Web Interface
+
+```bash
+python app.py
+```
+
+Or with Gunicorn:
+```bash
+gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
+```
+
+## Project Structure
+
+```
+├── app.py                    # Flask application
+├── main.py                   # Entry point for Gunicorn
+├── verify_evo_learn.py       # Verification logic
+├── github_update.py          # GitHub updating tool
+├── enhanced_core.py          # Enhanced core functionality
+├── enhanced_utils.py         # Enhanced utility functions
+├── enhanced_visualization.py # Enhanced visualization tools
+├── evo_learn_cli.py          # Command-line interface
+├── enhanced_README.md        # Enhanced documentation
+├── templates/                # HTML templates
+├── static/                   # Static assets
+└── test_evolearn.py          # Test script
+```
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). See the LICENSE file for more information.
+MIT License
+
+Copyright (c) 2025 Evo-Learn Contributors
