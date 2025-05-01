@@ -1,0 +1,102 @@
+name: Evo-Learn ML Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  quick-verification:
+    name: Quick Verification Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install all required packages directly without using requirements.txt
+        pip install numpy pandas scikit-learn matplotlib seaborn tpot pytest pytest-cov
+        # Additional dependencies that might be required for the tests
+        pip install email-validator flask flask-sqlalchemy gunicorn psycopg2-binary requests trafilatura
+    
+    - name: Quick validation test
+      run: |
+        # Basic import test to verify package installation and compatibility
+        python -c "import numpy; import pandas; import sklearn; import matplotlib; import seaborn; import tpot; print('All packages successfully imported')"
+        
+        # Simple verification that core modules exist
+        if [ -f enhanced_core.py ] && [ -f enhanced_utils.py ] && [ -f enhanced_visualization.py ]; then
+          echo "Core modules found"
+          python -c "import importlib.util; spec = importlib.util.spec_from_file_location('enhanced_core', 'enhanced_core.py'); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module); print('Enhanced core module successfully imported')"
+          exit 0
+        else
+          echo "ERROR: Core modules missing"
+          exit 1
+        fi
+
+  test:
+    needs: quick-verification
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10']
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install required packages directly
+        pip install numpy pandas scikit-learn matplotlib seaborn tpot pytest pytest-cov
+        # Additional dependencies that might be required for the tests
+        pip install email-validator flask flask-sqlalchemy gunicorn psycopg2-binary requests trafilatura
+    
+    - name: Run tests
+      run: |
+        pytest test_*.py --cov=. --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        fail_ci_if_error: false
+
+  functional-tests:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install required packages directly
+        pip install numpy pandas scikit-learn matplotlib seaborn tpot
+        # Additional dependencies that might be required for functional tests
+        pip install email-validator flask flask-sqlalchemy gunicorn psycopg2-binary requests trafilatura
+    
+    - name: Run functional tests
+      run: |
+        python functional_test.py
