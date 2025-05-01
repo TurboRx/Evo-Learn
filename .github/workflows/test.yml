@@ -1,105 +1,34 @@
-name: Run Tests
+name: Python Tests
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
-  quick-test:
-    name: Quick Verification Test
+  test:
     runs-on: ubuntu-latest
-    
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10']
+
     steps:
     - uses: actions/checkout@v3
     
-    - name: Set up Python 3.10
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: ${{ matrix.python-version }}
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # Install required packages directly
-        pip install numpy pandas scikit-learn matplotlib seaborn tpot joblib pytest
+        # Install packages directly instead of using requirements.txt
+        pip install numpy pandas scikit-learn matplotlib seaborn tpot pytest pytest-cov
+        # Additional dependencies that might be required for the tests
+        pip install email-validator flask flask-sqlalchemy gunicorn psycopg2-binary requests trafilatura
     
-    - name: Run simple tests
+    - name: Test with pytest
       run: |
-        # Create a simple test script
-        cat > simple_test.py << 'EOL'
-        #!/usr/bin/env python3
-        """
-        Simple test script for Evo-Learn library functionality.
-        This script verifies basic imports and functionality.
-        """
-        import sys
-
-        print("=== Simple Evo-Learn Verification Test ===")
-
-        # Global flag to track errors
-        has_errors = False
-        
-        # Test imports from enhanced modules
-        print("\nTesting enhanced module imports...")
-        try:
-            import enhanced_core
-            print("✓ Successfully imported enhanced_core")
-        except ImportError as e:
-            has_errors = True
-            print(f"✗ Import Error in enhanced_core: {e}")
-
-        try:
-            import enhanced_utils
-            print("✓ Successfully imported enhanced_utils")
-        except ImportError as e:
-            has_errors = True
-            print(f"✗ Import Error in enhanced_utils: {e}")
-
-        try:
-            import enhanced_visualization
-            print("✓ Successfully imported enhanced_visualization")
-        except ImportError as e:
-            has_errors = True
-            print(f"✗ Import Error in enhanced_visualization: {e}")
-
-        try:
-            import evo_learn_cli
-            print("✓ Successfully imported evo_learn_cli")
-        except ImportError as e:
-            has_errors = True
-            print(f"✗ Import Error in evo_learn_cli: {e}")
-
-        # Note about mloptimizer
-        print("\nNote on mloptimizer functionality:")
-        print("- mloptimizer is an internal package that would be installed in the actual repository")
-        print("- Skipping this test in the GitHub Actions environment")
-        # We don't try to import mloptimizer here, as it's not expected to be available
-
-        print("\n--- Test Results Summary ---")
-        print("✓ Basic import tests completed")
-        print("The repository structure appears to be correct")
-        
-        # Determine overall success
-        # Using a simpler approach since sys.stdout.getvalue() is not available
-        import io
-        output = io.StringIO()
-        
-        def check_imports():
-            global has_errors
-            # No import errors means we're successful
-            print("✓ All imports completed")
-            if has_errors:
-                print("× Some tests failed")
-                sys.exit(1)
-            else:
-                print("✓ All tests passed")
-                sys.exit(0)
-        
-        check_imports()
-        EOL
-        
-        # Run the test
-        python simple_test.py
+        pytest test_*.py
