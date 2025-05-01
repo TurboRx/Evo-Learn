@@ -1,22 +1,72 @@
-# Dependabot configuration file (Completely disabled)
+# Dependabot configuration file (No email notifications)
 
 version: 2
 updates:
-  # All updates set to very infrequent checks (yearly)
+  # Python packages - with notifications disabled
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "yearly"
-    open-pull-requests-limit: 0
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "pip"
+      include: "scope"
+    # Disable email notifications
+    ignore:
+      # Ignore all non-security updates
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
+    # Group all updates together to minimize PRs
+    groups:
+      python-packages:
+        patterns:
+          - "*"
   
+  # Node.js packages - with notifications disabled  
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "yearly"
-    open-pull-requests-limit: 0
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "npm"
+      include: "scope"
+    # Disable email notifications
+    ignore:
+      # Ignore all non-security updates
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
+    # Group all updates together to minimize PRs
+    groups:
+      javascript-packages:
+        patterns:
+          - "*"
   
+  # GitHub Actions - with notifications disabled
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "yearly"
-    open-pull-requests-limit: 0
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "github-actions"
+      include: "scope"
+    # Disable email notifications
+    ignore:
+      # Ignore all non-security updates
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor"]
+    # Group all updates together to minimize PRs
+    groups:
+      github-actions:
+        patterns:
+          - "*"
