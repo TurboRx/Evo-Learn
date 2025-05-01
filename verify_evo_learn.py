@@ -7,6 +7,7 @@ dependencies are installed and core functionality is working correctly.
 """
 
 import importlib
+import importlib.util  # Add explicit import for importlib.util
 import os
 import sys
 from typing import List, Tuple
@@ -57,20 +58,19 @@ def check_core_modules() -> Tuple[bool, List[str]]:
             
         module_name = module.replace(".py", "")
         try:
-            spec = importlib.util.find_spec(module_name)
-            if spec is not None:
+            # Try with direct file import approach which is safer
+            spec = importlib.util.spec_from_file_location(module_name, module)
+            if spec is not None and spec.loader is not None:
                 module_obj = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module_obj)
                 print(f"✓ Successfully imported {module}")
             else:
-                # Try with direct file import
-                spec = importlib.util.spec_from_file_location(module_name, module)
-                if spec is not None:
-                    module_obj = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module_obj)
+                # Fallback to normal import
+                try:
+                    importlib.import_module(module_name)
                     print(f"✓ Successfully imported {module}")
-                else:
-                    print(f"✗ Could not find spec for {module}")
+                except ImportError:
+                    print(f"✗ Could not import {module}")
                     missing.append(module)
         except Exception as e:
             print(f"✗ Failed to import {module}: {e}")
