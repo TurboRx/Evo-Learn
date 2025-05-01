@@ -1,113 +1,83 @@
-# Evo-Learn Enhancement Project
+# Evo-Learn
 
-This project consists of two main components:
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/TurboRx/Evo-Learn/evo_learn_workflow.yml)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-1. **Evo-Learn Enhancements** - A set of improved files and new functionality for the Evo-Learn automated machine learning tool.
-2. **Verification Web Interface** - A web application to verify, test, and showcase the Evo-Learn repository.
+A sophisticated machine learning automation and verification platform leveraging TPOT for intelligent model selection and performance optimization.
 
-## Evo-Learn Enhancements
+## Core Capabilities
 
-The enhanced files provide significant improvements to the original Evo-Learn repository:
+- **Automated Machine Learning**: Intelligent model exploration and selection using TPOT
+- **Comprehensive Verification**: Package and module validation for reliable deployments
+- **Advanced ML Workflows**: Streamlined pipelines for data preprocessing, model training, and evaluation
+- **Hyperparameter Tuning**: Dynamic optimization of model parameters
 
-- **Enhanced Core Functionality**
-  - Extended automated machine learning capabilities
-  - Improved model selection and evaluation
-  - Better support for classification and regression tasks
-  - Advanced hyperparameter tuning
+## Quick Start
 
-- **Enhanced Utilities**
-  - Advanced timing and performance tracking
-  - Improved error handling and validation
-  - Cross-validation utilities
-  - Model metadata management
+### Installation
 
-- **Enhanced Visualization**
-  - Feature distribution visualization
-  - Correlation matrix heatmaps
-  - Confusion matrices and ROC curves
-  - Learning curve analysis
-  - Feature importance plots
-
-- **Command Line Interface**
-  - User-friendly command-line tool
-  - Easy model training, evaluation, and prediction
-  - Visualization creation
-  - Comprehensive help and documentation
-
-- **Improved Documentation**
-  - Enhanced README.md with detailed usage instructions
-  - API documentation for all functions
-  - Code examples for common tasks
-  - Installation and requirements information
-
-## GitHub Update Tool
-
-The `github_update.py` script enables automated updating of the Evo-Learn repository via the GitHub API. It can:
-
-- Create new branches
-- Update multiple files
-- Commit changes
-- Create pull requests
-
-Usage:
 ```bash
-python github_update.py --token YOUR_GITHUB_TOKEN --owner OWNER_NAME --repo REPO_NAME --files enhanced_core.py enhanced_utils.py enhanced_visualization.py evo_learn_cli.py enhanced_README.md
+pip install numpy pandas scikit-learn matplotlib seaborn tpot
 ```
 
-## Quick Verification
+### Basic Usage
 
-You can quickly verify your Evo-Learn installation using the included verification script:
+```python
+from enhanced_core import run_automl
+
+# Run automated machine learning
+results = run_automl(
+    data_path="your_dataset.csv",
+    target_column="target",
+    task="classification",
+    generations=5,
+    population_size=20
+)
+
+# Check model performance
+print(f"Model accuracy: {results['metrics']['accuracy']:.4f}")
+```
+
+## GitHub Integration
+
+This repository includes powerful GitHub integration scripts:
+
+### Manual Push
+
+Push specific files with proper attribution:
+
+```bash
+node push_as_turborx.js --files "file1.py,file2.py" --message "Your commit message"
+```
+
+### Automated Push
+
+Automatically detect and push changed files:
+
+```bash
+node auto-push.js --token "$GITHUB_TOKEN" --name "TurboRx" --email "your.email@example.com"
+```
+
+### GitHub Actions
+
+The repository uses GitHub Actions for CI/CD:
+
+- Automatic testing across multiple Python versions
+- Verification of core functionality
+- Comprehensive test coverage
+
+## Verification
+
+You can verify your Evo-Learn installation using:
 
 ```bash
 python verify_evo_learn.py
 ```
 
-This script checks:
-- Required package dependencies
-- Core module availability
-- Module imports
-
-If successful, you'll see a "Verification PASSED" message indicating your environment is properly set up.
-
-## Verification Web Interface
-
-The web interface allows users to:
-
-1. Verify the Evo-Learn repository
-2. Test core functionality
-3. View verification results
-4. Access documentation for enhanced features
-
-### Running the Web Interface
-
-```bash
-python app.py
-```
-
-Or with Gunicorn:
-```bash
-gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
-```
-
-## Project Structure
-
-```
-├── app.py                    # Flask application
-├── main.py                   # Entry point for Gunicorn
-├── verify_evo_learn.py       # Verification logic
-├── github_update.py          # GitHub updating tool
-├── enhanced_core.py          # Enhanced core functionality
-├── enhanced_utils.py         # Enhanced utility functions
-├── enhanced_visualization.py # Enhanced visualization tools
-├── evo_learn_cli.py          # Command-line interface
-├── enhanced_README.md        # Enhanced documentation
-├── templates/                # HTML templates
-├── static/                   # Static assets
-└── test_evolearn.py          # Test script
-```
-
 ## License
 
-MIT License
+MIT
 
-Copyright (c) 2025 Evo-Learn Contributors
+## Author
+
+Built by [TurboRx](https://github.com/TurboRx)
