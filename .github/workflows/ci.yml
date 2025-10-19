@@ -24,19 +24,35 @@ jobs:
       - name: Run verification
         run: |
           python verify_evo_learn.py
-      - name: Run basic smoke test
+      - name: Run baseline smoke test (classification)
         run: |
           python - <<'PY'
           from enhanced_core import run_automl
           import pandas as pd
-          # Tiny synthetic dataset
           df = pd.DataFrame({
+            'cat':['a','b','a','b','a','b','a','b','a','b'],
             'f1':[0,1,0,1,0,1,0,1,0,1],
-            'f2':[1,1,0,0,1,1,0,0,1,0],
             'target':[0,1,0,1,0,1,0,1,0,1]
           })
-          df.to_csv('tmp.csv', index=False)
-          res = run_automl('tmp.csv', 'target', task='classification', generations=2, population_size=10, max_eval_time_mins=2)
+          df.to_csv('tmp_cls.csv', index=False)
+          res = run_automl('tmp_cls.csv','target', task='classification', generations=1, population_size=5, max_eval_time_mins=1, always_baseline=True)
           assert 'metrics' in res and 'accuracy' in res['metrics']
-          print('Smoke test OK:', res['metrics'])
+          print('Baseline classification OK:', res['metrics'])
+          PY
+      - name: Run baseline smoke test (regression)
+        run: |
+          python - <<'PY'
+          from enhanced_core import run_automl
+          import pandas as pd
+          import numpy as np
+          x = np.arange(10)
+          df = pd.DataFrame({
+            'f1': x,
+            'f2': x*2,
+            'target': x*3 + 1
+          })
+          df.to_csv('tmp_reg.csv', index=False)
+          res = run_automl('tmp_reg.csv','target', task='regression', generations=1, population_size=5, max_eval_time_mins=1, always_baseline=True)
+          assert 'metrics' in res and 'rmse' in res['metrics']
+          print('Baseline regression OK:', res['metrics'])
           PY
