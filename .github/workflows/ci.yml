@@ -1,0 +1,42 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run verification
+        run: |
+          python verify_evo_learn.py
+      - name: Run basic smoke test
+        run: |
+          python - <<'PY'
+          from enhanced_core import run_automl
+          import pandas as pd
+          # Tiny synthetic dataset
+          df = pd.DataFrame({
+            'f1':[0,1,0,1,0,1,0,1,0,1],
+            'f2':[1,1,0,0,1,1,0,0,1,0],
+            'target':[0,1,0,1,0,1,0,1,0,1]
+          })
+          df.to_csv('tmp.csv', index=False)
+          res = run_automl('tmp.csv', 'target', task='classification', generations=2, population_size=10, max_eval_time_mins=2)
+          assert 'metrics' in res and 'accuracy' in res['metrics']
+          print('Smoke test OK:', res['metrics'])
+          PY
