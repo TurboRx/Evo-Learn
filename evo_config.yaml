@@ -1,0 +1,11 @@
+default_task: classification
+random_state: 42
+test_size: 0.2
+output_dir: mloptimizer/models
+generations: 5
+population_size: 20
+max_time_mins: null
+max_eval_time_mins: 5
+handle_categoricals: true
+impute_strategy: median
+scale_numeric: true
