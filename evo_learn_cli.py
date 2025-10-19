@@ -2,7 +2,7 @@
 """
 Command Line Interface for Evo-Learn (enhanced)
 
-Adds --config support and preprocessing toggles passed through to run_automl.
+Adds --config support, preprocessing toggles, and --baseline option.
 """
 
 import argparse
@@ -62,6 +62,8 @@ def setup_argparse():
     train_parser.add_argument('--impute', choices=['mean','median','most_frequent','constant'], default=None,
                               help='Imputation strategy override for numeric features')
     train_parser.add_argument('--no-scale', action='store_true', help='Disable numeric scaling')
+    # Baseline toggle
+    train_parser.add_argument('--baseline', action='store_true', help='Skip TPOT and train a fast baseline (LogisticRegression/Ridge)')
     
     # Predict command
     predict_parser = subparsers.add_parser('predict', help='Make predictions with a trained model')
@@ -101,7 +103,6 @@ def train_model(args):
         
         # Build overrides from CLI flags
         config_path = args.config
-        # Preprocessing overrides (only if provided)
         overrides = {}
         if args.no_categoricals:
             overrides['handle_categoricals'] = False
@@ -110,7 +111,6 @@ def train_model(args):
         if args.no_scale:
             overrides['scale_numeric'] = False
         
-        # If overrides exist but no config path provided, write a temp overlay
         overlay_path = None
         if overrides and not config_path:
             import tempfile, yaml
@@ -131,7 +131,8 @@ def train_model(args):
             output_dir=args.output_dir,
             max_time_mins=args.max_time,
             max_eval_time_mins=args.max_eval_time,
-            config_path=config_path
+            config_path=config_path,
+            always_baseline=args.baseline
         )
         
         logger.info(f"Model training completed successfully")
@@ -164,8 +165,6 @@ def train_model(args):
         logger.error(f"Error training model: {e}")
         return 1
 
-# predict_with_model, evaluate_model, create_visualizations, show_version remain unchanged
-# (keeping original implementations)
 from evo_learn_cli import predict_with_model, evaluate_model, create_visualizations, show_version  # type: ignore
 
 def main():
