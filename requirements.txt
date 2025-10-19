@@ -1,6 +1,16 @@
-# Data manipulation library
-pandas==2.3.3
-# Machine learning library
-scikit-learn==1.7.2
-# Automated machine learning tool
-tpot==1.1.0
+# Pinned, compatible versions for Evo-Learn
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.4.2
+matplotlib==3.8.4
+seaborn==0.13.2
+# TPOT pinned to last stable on PyPI compatible with py<=3.11
+TPOT==0.12.2
+joblib==1.3.2
+scipy==1.11.4
+xgboost==1.7.6
+lightgbm==4.1.0
+deap==1.3.3
+update-checker==0.18.0
+stopit==1.1.2
+dill==0.3.7
