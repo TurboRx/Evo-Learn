@@ -1,0 +1,31 @@
+# Evo-Learn Configuration File
+# Professional AutoML settings with comprehensive options
+
+# Task Configuration
+default_task: classification  # Options: 'classification' or 'regression'
+random_state: 42             # Random seed for reproducibility
+test_size: 0.2               # Fraction of data for testing (0.0-1.0)
+
+# Output Configuration
+output_dir: models           # Directory for saving trained models
+
+# TPOT Optimization Settings
+generations: 5               # Number of evolutionary generations
+population_size: 20          # Size of population in each generation
+max_time_mins: null          # Maximum total optimization time (null = no limit)
+max_eval_time_mins: 5        # Maximum time per pipeline evaluation
+
+# Data Preprocessing Options
+handle_categoricals: true    # Enable categorical variable encoding
+impute_strategy: median      # Strategy for missing value imputation
+                            # Options: 'mean', 'median', 'most_frequent', 'constant'
+scale_numeric: true         # Enable numerical feature scaling
+
+# Model Training Options
+baseline: false             # Skip TPOT and use baseline model (LogisticRegression/Ridge)
+
+# Advanced Settings (optional)
+# cross_validation_folds: 5   # Number of CV folds for model validation
+# feature_selection: true     # Enable automatic feature selection
+# early_stopping: true       # Enable early stopping for TPOT
+# n_jobs: 1                  # Number of parallel jobs (-1 for all cores)
