@@ -1,0 +1,103 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evo-learn"
+version = "1.2.0"
+authors = [
+    {name = "TurboRx", email = "turborx@example.com"},
+]
+description = "Automated ML tool leveraging TPOT for efficient model selection and hyperparameter optimization"
+readme = "README.md"
+requires-python = ">=3.10,<3.12"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["automl", "machine learning", "tpot", "optimization", "scikit-learn"]
+license = {text = "MIT"}
+dependencies = [
+    "numpy>=2.3.0,<3.0.0",
+    "pandas>=2.2.0",
+    "scikit-learn>=1.4.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "TPOT>=0.12.0",
+    "joblib>=1.3.0",
+    "scipy>=1.11.0",
+    "xgboost>=3.1.0",
+    "lightgbm>=4.1.0",
+    "deap>=1.3.0",
+    "update-checker>=0.18.0",
+    "stopit>=1.1.0",
+    "dill>=0.3.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+docs = [
+    "sphinx>=6.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/TurboRx/Evo-Learn"
+"Bug Reports" = "https://github.com/TurboRx/Evo-Learn/issues"
+"Source" = "https://github.com/TurboRx/Evo-Learn"
+"Documentation" = "https://github.com/TurboRx/Evo-Learn#readme"
+
+[project.scripts]
+evo-learn = "evo_learn_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]  # list of folders that contain the packages (["src"] by default)
+include = ["*"]  # package names should match these glob patterns (["*"] by default)
+exclude = ["tests*", "examples*"]  # exclude packages matching these glob patterns (empty by default)
+
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=. --cov-report=term-missing"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
