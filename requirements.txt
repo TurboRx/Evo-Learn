@@ -12,7 +12,7 @@ matplotlib==3.8.4          # Plotting and visualization
 seaborn==0.13.2            # Statistical data visualization
 
 # AutoML and Optimization
-TPOT==0.12.2               # Automated ML pipeline optimization
+TPOT==1.1.0               # Automated ML pipeline optimization
 deap==1.3.3                # Evolutionary algorithms (TPOT dependency)
 stopit==1.1.2              # Timeout handling (TPOT dependency)
 update-checker==0.18.0     # Version checking (TPOT dependency)
