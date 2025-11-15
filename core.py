@@ -47,13 +47,29 @@ def load_data(data_path: str) -> pd.DataFrame:
     """
     try:
         if not os.path.exists(data_path):
-            raise FileNotFoundError(f"Data file not found: {data_path}")
+            raise FileNotFoundError(
+                f"Data file not found: {data_path}\n"
+                f"Please ensure the file path is correct and the file exists."
+            )
+        
+        # Check file extension
+        if not data_path.lower().endswith('.csv'):
+            logger.warning(f"File does not have .csv extension: {data_path}")
             
         data = pd.read_csv(data_path)
         logger.info(f"Loaded data: {data_path} shape={data.shape}")
         
         if data.empty:
-            raise ValueError(f"Data file is empty: {data_path}")
+            raise ValueError(
+                f"Data file is empty: {data_path}\n"
+                f"The CSV file contains no data rows."
+            )
+        
+        if len(data.columns) < 2:
+            raise ValueError(
+                f"Data file must have at least 2 columns (features + target): {data_path}\n"
+                f"Found only {len(data.columns)} column(s)."
+            )
             
         # Check for and handle mixed dtypes that might cause issues with numpy 2.x
         for col in data.columns:
@@ -65,10 +81,24 @@ def load_data(data_path: str) -> pd.DataFrame:
         
         original_shape = data.shape
         data = data.dropna()
-        logger.info(f"After dropna: shape={data.shape} (removed {original_shape[0] - data.shape[0]} rows)")
+        rows_removed = original_shape[0] - data.shape[0]
+        
+        if rows_removed > 0:
+            logger.info(f"After dropna: shape={data.shape} (removed {rows_removed} rows with NaN values)")
         
         if data.empty:
-            raise ValueError("No data remaining after removing NaN values")
+            raise ValueError(
+                "No data remaining after removing NaN values.\n"
+                "The dataset contains only rows with missing values. "
+                "Please clean your data or disable NaN dropping."
+            )
+        
+        # Warn if too much data was removed
+        if rows_removed > original_shape[0] * 0.5:
+            logger.warning(
+                f"More than 50% of rows ({rows_removed}/{original_shape[0]}) "
+                f"were removed due to NaN values. Consider imputation instead."
+            )
             
         return data
         
@@ -77,7 +107,11 @@ def load_data(data_path: str) -> pd.DataFrame:
         raise
     except pd.errors.ParserError as e:
         logger.error(f"Failed to parse CSV: {data_path}. Error: {e}")
-        raise
+        raise ValueError(
+            f"CSV parsing failed for {data_path}\n"
+            f"Please ensure the file is a valid CSV format.\n"
+            f"Error: {e}"
+        )
     except Exception as e:
         logger.error(f"Error loading data from {data_path}: {e}")
         raise

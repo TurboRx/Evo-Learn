@@ -65,6 +65,8 @@ dev_env/
 # Compiled Model files
 mloptimizer/models/*.pkl
 mloptimizer/models/*.joblib
+models/*.pkl
+models/*.json
 
 # Data files (if large or sensitive)
 examples/data/*.csv
