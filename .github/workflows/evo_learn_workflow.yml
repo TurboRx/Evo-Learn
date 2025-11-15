@@ -38,9 +38,9 @@ jobs:
         ls -la *.py
         
         # Check for core modules if they exist
-        if [ -f enhanced_core.py ] && [ -f enhanced_utils.py ] && [ -f enhanced_visualization.py ]; then
+        if [ -f core.py ] && [ -f utils.py ] && [ -f visualization.py ]; then
           echo "Core modules found"
-          python -c "import importlib.util; spec = importlib.util.spec_from_file_location('enhanced_core', 'enhanced_core.py'); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module); print('Enhanced core module successfully imported')"
+          python -c "import importlib.util; spec = importlib.util.spec_from_file_location('core', 'core.py'); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module); print('Core module successfully imported')"
         else
           echo "NOTE: Core modules not found, but this may be expected in some cases"
           echo "Moving forward with workflow anyway"
