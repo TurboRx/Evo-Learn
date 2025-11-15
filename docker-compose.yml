@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  evo-learn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: evo-learn:latest
+    container_name: evo-learn
+    volumes:
+      - ./data:/app/data
+      - ./mloptimizer/models:/app/mloptimizer/models
+      - ./results:/app/results
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python cli.py --help
+
+  evo-learn-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: evo-learn:dev
+    container_name: evo-learn-dev
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: bash
+    stdin_open: true
+    tty: true
+
+  evo-learn-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: evo-learn:test
+    container_name: evo-learn-test
+    volumes:
+      - .:/app
+    command: pytest tests/ -v --cov=. --cov-report=html
