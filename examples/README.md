@@ -61,17 +61,17 @@ Use the CLI to train models on generated data:
 python cli.py train --data examples/sample_classification.csv --target target --baseline
 
 # Full TPOT optimization (slower)
-python cli.py train --data examples/sample_classification.csv --target target --config evo_config.yaml
+python cli.py train --data examples/sample_classification.csv --target target --config config.yaml
 ```
 
 ### Make Predictions
 ```bash
-python cli.py predict --model mloptimizer/models/model.pkl --data examples/sample_classification.csv --output predictions.csv
+python cli.py predict --model models/model.pkl --data examples/sample_classification.csv --output predictions.csv
 ```
 
 ### Evaluate Models
 ```bash
-python cli.py evaluate --model mloptimizer/models/model.pkl --data examples/sample_classification.csv --target target --output-dir evaluation_results
+python cli.py evaluate --model models/model.pkl --data examples/sample_classification.csv --target target --output-dir evaluation_results
 ```
 
 ## Tips
@@ -79,7 +79,7 @@ python cli.py evaluate --model mloptimizer/models/model.pkl --data examples/samp
 - **Start with baseline models** (`--baseline` flag) for quick prototyping
 - **Use TPOT** for final model optimization (remove `--baseline`)
 - **Adjust config** files for different hyperparameters
-- **Check output artifacts** in `mloptimizer/models/` directory
+- **Check output artifacts** in `models/` directory
 - **Review visualizations** generated during evaluation
 
 ## Adding Your Own Examples
@@ -99,9 +99,3 @@ python cli.py evaluate --model mloptimizer/models/model.pkl --data examples/samp
 
 **Issue**: Memory errors with large datasets
 **Solution**: Reduce dataset size or use sampling
-
-## Further Resources
-
-- [Main README](../README.md)
-- [Contributing Guide](../CONTRIBUTING.md)
-- [API Documentation](../docs/) (coming soon)

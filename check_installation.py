@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Verification Script for Evo-Learn Repository
+Installation Check Script for Evo-Learn
 
 This script performs basic verification to ensure that the necessary
 dependencies are installed and core functionality is working correctly.
@@ -82,8 +82,8 @@ def check_core_modules() -> Tuple[bool, List[str]]:
 
 
 def main():
-    """Run verification checks"""
-    print("\n===== Evo-Learn Repository Verification =====\n")
+    """Run installation checks"""
+    print("\n===== Evo-Learn Installation Check =====\n")
     
     # Check required packages
     print("\n----- Checking Required Packages -----")

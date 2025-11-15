@@ -33,7 +33,7 @@ class EvoLearnConfig:
     baseline: bool = False
     
     # Output
-    output_dir: str = "mloptimizer/models"
+    output_dir: str = "models"
     
     # Logging
     log_level: str = "INFO"

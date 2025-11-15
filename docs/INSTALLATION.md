@@ -79,7 +79,7 @@ pip install -e ".[dev]"
 5. **Verify installation**
 
 ```bash
-python verify_evo_learn.py
+python check_installation.py
 ```
 
 Expected output:
@@ -131,7 +131,7 @@ docker run -v $(pwd)/data:/app/data evo-learn python cli.py train --data /app/da
 
 - Mount local directories for data and models:
   ```bash
-  docker run -v $(pwd)/data:/app/data -v $(pwd)/models:/app/mloptimizer/models evo-learn
+  docker run -v $(pwd)/data:/app/data -v $(pwd)/models:/app/models evo-learn
   ```
 
 - Use GPU acceleration (if available):
@@ -317,11 +317,11 @@ After installation:
 
 ## Verification Checklist
 
-- [ ] Python 3.10 or 3.11 installed
+- [ ] Python 3.10, 3.11, or 3.12 installed
 - [ ] Virtual environment created and activated
 - [ ] All dependencies installed
-- [ ] `python verify_evo_learn.py` passes
-- [ ] Can import: `from evo_learn import run_automl`
+- [ ] `python check_installation.py` passes
+- [ ] Can import: `from core import run_automl`
 - [ ] Tests run successfully: `pytest tests/`
 - [ ] Pre-commit hooks working (dev only)
 
