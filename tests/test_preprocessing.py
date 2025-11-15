@@ -2,36 +2,62 @@
 
 import unittest
 import pandas as pd
-from io import StringIO
-from mloptimizer.preprocessing import preprocess_data
+import tempfile
+import os
+import numpy as np
+from preprocessing import build_preprocessor
 
 class TestPreprocessing(unittest.TestCase):
     """Unit tests for data preprocessing functionalities."""
 
     def setUp(self):
-        """Set up a mock dataset in memory."""
-        self.mock_data = StringIO("""
-        feature1,category
-        1,A
-        2,B
-        3,A
-        """)
+        """Set up a mock dataset in a temporary file."""
+        data = pd.DataFrame({
+            'feature1': [1, 2, 3, 4, 5],
+            'category': ['A', 'B', 'A', 'B', 'A'],
+            'target': [0, 1, 0, 1, 0]
+        })
+        
+        # Create temporary file
+        self.temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+        data.to_csv(self.temp_file.name, index=False)
+        self.temp_file.close()
 
     def test_preprocess_data(self):
         """
-        Test preprocess_data function for:
-        - Encoding categorical features (e.g., columns with string values).
+        Test build_preprocessor function for:
+        - Handling categorical features (encoding).
+        - Handling numeric features (imputation and scaling).
         """
-        # Load the mock data into a DataFrame
-        data = pd.read_csv(self.mock_data)
-
-        # Preprocess the data and validate results
-        preprocessed_data = preprocess_data(self.mock_data, categorical_features=['category'])
-        self.assertTrue(all(isinstance(x, (int, float)) for x in preprocessed_data['category']))
+        # Load the data
+        data = pd.read_csv(self.temp_file.name)
+        
+        # Build preprocessor
+        preprocessor, feature_names = build_preprocessor(
+            data, 
+            target_column='target',
+            handle_categoricals=True,
+            scale_numeric=True
+        )
+        
+        # Test that preprocessor was created
+        self.assertIsNotNone(preprocessor)
+        
+        # Transform the data
+        X = data.drop(columns=['target'])
+        X_transformed = preprocessor.transform(X)
+        
+        # Check that output is numeric
+        self.assertTrue(np.issubdtype(X_transformed.dtype, np.number))
+        
+        # Check that we have the expected number of features
+        # feature1 (1) + category one-hot encoded (2) = 3 features
+        self.assertEqual(X_transformed.shape[1], 3)
 
     def tearDown(self):
         """Clean up resources."""
-        self.mock_data.close()
+        if os.path.exists(self.temp_file.name):
+            os.unlink(self.temp_file.name)
 
 if __name__ == '__main__':
     unittest.main()

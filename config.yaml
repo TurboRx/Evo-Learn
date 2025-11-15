@@ -7,7 +7,7 @@ random_state: 42             # Random seed for reproducibility
 test_size: 0.2               # Fraction of data for testing (0.0-1.0)
 
 # Output Configuration
-output_dir: models           # Directory for saving trained models
+output_dir: models            # Directory for saving trained models
 
 # TPOT Optimization Settings
 generations: 5               # Number of evolutionary generations

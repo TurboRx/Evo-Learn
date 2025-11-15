@@ -38,16 +38,15 @@ jobs:
         
         # Define required files and directories
         REQUIRED_FILES = [
-            "enhanced_core.py",
-            "enhanced_utils.py",
-            "enhanced_visualization.py",
-            "enhanced_README.md",
-            "evo_learn_cli.py",
+            "core.py",
+            "utils.py",
+            "visualization.py",
+            "README.md",
+            "cli.py",
             "LICENSE"
         ]
         
         REQUIRED_DIRS = [
-            "mloptimizer",
             ".github/workflows"
         ]
         
@@ -65,13 +64,6 @@ jobs:
             for directory in REQUIRED_DIRS:
                 if not os.path.isdir(directory):
                     errors.append(f"Required directory '{directory}' is missing")
-            
-            # Check mloptimizer module structure
-            if os.path.isdir("mloptimizer"):
-                if not os.path.isfile("mloptimizer/__init__.py"):
-                    errors.append("mloptimizer/__init__.py is missing")
-                if not os.path.isfile("mloptimizer/core.py"):
-                    errors.append("mloptimizer/core.py is missing")
             
             # Check for tests
             if not os.path.isdir("tests") and not any(f.startswith("test_") for f in os.listdir(".")):
@@ -131,10 +123,8 @@ jobs:
         # Create docs directory
         mkdir -p docs
         
-        # Copy enhanced README as index
-        if [ -f enhanced_README.md ]; then
-          cp enhanced_README.md docs/index.md
-        elif [ -f README.md ]; then
+        # Copy README as index
+        if [ -f README.md ]; then
           cp README.md docs/index.md
         else
           echo "# Evo-Learn" > docs/index.md
@@ -156,7 +146,7 @@ jobs:
         ## Basic Usage
         
         ```python
-        from enhanced_core import run_automl
+        from core import run_automl
         
         # Run AutoML for classification
         results = run_automl(
@@ -176,7 +166,7 @@ jobs:
         Evo-Learn comes with a command-line interface for easy use:
         
         ```bash
-        python evo_learn_cli.py train --data your_dataset.csv --target target --task classification
+        python cli.py train --data your_dataset.csv --target target --task classification
         ```
         EOL
         

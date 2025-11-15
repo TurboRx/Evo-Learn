@@ -2,26 +2,21 @@
 
 <div align="center">
 
-![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue)
+![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://github.com/TurboRx/Evo-Learn/workflows/Tests/badge.svg)](https://github.com/TurboRx/Evo-Learn/actions)
-[![codecov](https://codecov.io/gh/TurboRx/Evo-Learn/branch/main/graph/badge.svg)](https://codecov.io/gh/TurboRx/Evo-Learn)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-A robust AutoML toolkit built on TPOT with production-friendly preprocessing, config-driven runs, baseline fallbacks, and comprehensive CI/CD.
+**A robust AutoML toolkit built on TPOT with production-ready preprocessing, config-driven runs, and baseline fallbacks.**
 
-[Features](#-features) •
-[Installation](#-installation) •
-[Quick Start](#-quick-start) •
-[Documentation](#-documentation) •
-[Contributing](#-contributing)
+[Features](#features) •
+[Installation](#installation) •
+[Quick Start](#quick-start) •
+[Configuration](#configuration)
 
 </div>
 
 ---
 
-## ✨ Features
+## Features
 
 - **Automated Model Search**: Leverages TPOT for intelligent model selection (classification & regression)
 - **Production-Ready Pipeline**: Full preprocessing with imputation, encoding, and optional scaling
@@ -31,20 +26,13 @@ A robust AutoML toolkit built on TPOT with production-friendly preprocessing, co
 - **Rich Visualizations**: ROC/PR curves, residual plots, actual vs predicted
 - **Docker Support**: Containerized deployment ready
 - **Type-Safe**: Comprehensive type hints throughout
-- **Well-Tested**: Extensive test suite with 80%+ coverage
-- **CI/CD Ready**: GitHub Actions workflows for testing, linting, and releases
+- **Well-Tested**: Extensive test suite with good coverage
 
-## 🚀 Installation
-
-### From PyPI (Coming Soon)
-
-```bash
-pip install evo-learn
-```
+## Installation
 
 ### From Source
 
-**Requirements**: Python 3.10 or 3.11
+**Requirements**: Python 3.10, 3.11, or 3.12
 
 ```bash
 # Clone the repository
@@ -60,7 +48,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 # Verify installation
-python verify_evo_learn.py
+python check_installation.py
 ```
 
 ### Using Docker
@@ -76,12 +64,12 @@ docker-compose run evo-learn-dev bash
 docker-compose run evo-learn-test
 ```
 
-## 💡 Quick Start
+## Quick Start
 
 ### Python API
 
 ```python
-from enhanced_core import run_automl
+from core import run_automl
 
 # Classification example
 result = run_automl(
@@ -90,11 +78,11 @@ result = run_automl(
     task="classification",
     generations=5,
     population_size=20,
-    config_path="evo_config.yaml"  # optional
+    config_path="config.yaml"  # optional
 )
 
 print(f"Accuracy: {result['metrics']['accuracy']:.4f}")
-print(f"F1 Score: {result['metrics']['f1']:.4f}")
+print(f"F1 Score: {result['metrics']['f1_score']:.4f}")
 ```
 
 ### Command Line Interface
@@ -105,7 +93,7 @@ python cli.py train \
     --data dataset.csv \
     --target target_column \
     --task classification \
-    --config evo_config.yaml
+    --config config.yaml
 
 # Use baseline model (faster, no TPOT)
 python cli.py train \
@@ -115,21 +103,21 @@ python cli.py train \
 
 # Make predictions
 python cli.py predict \
-    --model mloptimizer/models/model.pkl \
+    --model models/model.pkl \
     --data new_data.csv \
     --output predictions.csv
 
 # Evaluate model with visualizations
 python cli.py evaluate \
-    --model mloptimizer/models/model.pkl \
+    --model models/model.pkl \
     --data test_data.csv \
     --target target_column \
     --output-dir evaluation_results
 ```
 
-## ⚙️ Configuration
+## Configuration
 
-Create `evo_config.yaml` to customize behavior:
+Create `config.yaml` to customize behavior:
 
 ```yaml
 # Task settings
@@ -152,17 +140,17 @@ scale_numeric: true
 baseline: false  # Set true to skip TPOT and use baseline model
 
 # Output
-output_dir: mloptimizer/models
+output_dir: models
 ```
 
 CLI flags override config settings when provided.
 
-## 📊 Output Artifacts
+## Output Artifacts
 
 ### Training Outputs
 
 ```
-mloptimizer/models/
+models/
 ├── model.pkl                    # Trained pipeline (preprocessing + model)
 ├── classification_metadata.json # Metrics, parameters, timestamps
 ├── tpot_pipeline.py             # TPOT-exported code (if available)
@@ -180,100 +168,45 @@ evaluation_results/
 └── actual_vs_pred.png           # Actual vs Predicted (regression)
 ```
 
-## 📚 Documentation
+## Examples
 
-### Examples
+Check the [`examples/`](examples/) directory for sample code and tutorials.
 
-Check the [`examples/`](examples/) directory for:
-- Handling imbalanced datasets
-- Custom preprocessing pipelines
-- Model interpretation
-- Cross-validation workflows
-- Hyperparameter tuning
-
-### API Reference
-
-Detailed API documentation is available in the [docs/](docs/) directory (coming soon).
-
-## 🧪 Troubleshooting
+## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
 | TPOT fails or times out | Use `--baseline` flag or set `baseline: true` in config |
-| Python version errors | Ensure Python 3.10 or 3.11 is installed |
+| Python version errors | Ensure Python 3.10, 3.11, or 3.12 is installed |
 | Missing dependencies | Run `pip install -r requirements.txt` |
-| Import errors | Verify installation with `python verify_evo_learn.py` |
+| Import errors | Verify installation with `python check_installation.py` |
 | Class imbalance | Stratified splits are applied automatically |
 | Mixed data types | Automatic imputation and encoding handles this |
 
-## 🛠️ Development
-
-### Setup Development Environment
-
-```bash
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Install pre-commit hooks
-pre-commit install
-
-# Run tests
-pytest tests/ -v --cov
-
-# Format code
-black .
-isort .
-
-# Type checking
-mypy .
-```
+## Development
 
 ### Running Tests
 
 ```bash
 # All tests with coverage
-pytest tests/ -v --cov=. --cov-report=html
+pytest tests/ -v --cov
 
 # Specific test file
 pytest tests/test_core.py -v
 
 # Integration tests only
 pytest tests/test_integration.py -v
-
-# Parallel execution
-pytest tests/ -n auto
 ```
 
-## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Quick Contribution Steps
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes and add tests
-4. Ensure all tests pass: `pytest tests/`
-5. Commit with conventional commits: `feat: add amazing feature`
-6. Push and create a Pull Request
-
-## 📄 Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history and changes.
-
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👤 Author
+## Author
 
 **TurboRx**
 - GitHub: [@TurboRx](https://github.com/TurboRx)
 - Repository: [Evo-Learn](https://github.com/TurboRx/Evo-Learn)
-
-## ⭐ Star History
-
-If you find Evo-Learn useful, please consider starring the repository!
 
 ---
 
