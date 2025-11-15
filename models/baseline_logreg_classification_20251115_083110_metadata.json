@@ -1,0 +1,28 @@
+{
+    "model_name": "baseline_logreg_classification_20251115_083110",
+    "task": "classification",
+    "model_path": "models/baseline_logreg_classification_20251115_083110.pkl",
+    "pipeline_path": null,
+    "metrics": {
+        "accuracy": 0.5,
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1_score": 0.5,
+        "roc_auc": 0.5
+    },
+    "feature_names": [
+        "feature1",
+        "feature2"
+    ],
+    "target_column": "target",
+    "training_samples": 16,
+    "testing_samples": 4,
+    "timestamp": "20251115_083110",
+    "tpot_config": null,
+    "preprocessing": {
+        "handle_categoricals": true,
+        "impute_strategy": "median",
+        "scale_numeric": true
+    },
+    "model_type": "baseline_logreg"
+}

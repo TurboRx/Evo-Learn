@@ -34,7 +34,7 @@ def build_preprocessor(df: pd.DataFrame,
     if handle_categoricals and categorical_cols:
         cat_pipeline = Pipeline(steps=[
             ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("encoder", OneHotEncoder(handle_unknown="ignore", sparse=False))
+            ("encoder", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
         ])
         transformers.append(("cat", cat_pipeline, categorical_cols))
 

@@ -43,10 +43,12 @@ def check_core_modules() -> Tuple[bool, List[str]]:
         Tuple with success flag and list of missing modules
     """
     core_modules = [
-        "enhanced_core.py",
-        "enhanced_utils.py",
-        "enhanced_visualization.py",
-        "evo_learn_cli.py"
+        "core.py",
+        "utils.py",
+        "visualization.py",
+        "cli.py",
+        "preprocessing.py",
+        "validate.py"
     ]
     
     missing = []
