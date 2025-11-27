@@ -1,11 +1,15 @@
+"""Professional visualization functions with modern Python 3.14 features."""
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-from typing import Dict, Any
 
 # Professional visualization functions
 
-def save_roc_curve(y_true, y_proba, path: str):
+def save_roc_curve(y_true, y_proba, path: str | Path) -> None:
     """
     Save ROC curve plot to file.
     
@@ -33,7 +37,7 @@ def save_roc_curve(y_true, y_proba, path: str):
     except Exception:
         pass
 
-def save_pr_curve(y_true, y_proba, path: str):
+def save_pr_curve(y_true, y_proba, path: str | Path) -> None:
     """
     Save Precision-Recall curve plot to file.
     
@@ -60,7 +64,7 @@ def save_pr_curve(y_true, y_proba, path: str):
     except Exception:
         pass
 
-def save_residuals(y_true, y_pred, path: str):
+def save_residuals(y_true, y_pred, path: str | Path) -> None:
     """
     Save residuals plot for regression models.
     
@@ -83,7 +87,7 @@ def save_residuals(y_true, y_pred, path: str):
     except Exception:
         pass
 
-def save_actual_vs_pred(y_true, y_pred, path: str):
+def save_actual_vs_pred(y_true, y_pred, path: str | Path) -> None:
     """
     Save actual vs predicted values plot.
     
@@ -107,7 +111,7 @@ def save_actual_vs_pred(y_true, y_pred, path: str):
     except Exception:
         pass
 
-def plot_feature_distributions(data, target_column: str, output_dir: str):
+def plot_feature_distributions(data, target_column: str, output_dir: str | Path) -> None:
     """
     Create feature distribution plots.
     
@@ -118,7 +122,8 @@ def plot_feature_distributions(data, target_column: str, output_dir: str):
     """
     try:
         import seaborn as sns
-        os.makedirs(output_dir, exist_ok=True)
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
         
         # Get numeric columns
         numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
@@ -131,12 +136,12 @@ def plot_feature_distributions(data, target_column: str, output_dir: str):
             sns.histplot(data=data, x=col, hue=target_column, kde=True)
             plt.title(f'Distribution of {col}')
             plt.tight_layout()
-            plt.savefig(os.path.join(output_dir, f'dist_{col}.png'))
+            plt.savefig(out_path / f'dist_{col}.png')
             plt.close()
     except Exception:
         pass
 
-def plot_correlation_matrix(data, output_path: str):
+def plot_correlation_matrix(data, output_path: str | Path) -> None:
     """
     Create correlation matrix heatmap.
     
@@ -162,7 +167,7 @@ def plot_correlation_matrix(data, output_path: str):
     except Exception:
         pass
 
-def create_evaluation_dashboard(results: Dict[str, Any], output_dir: str):
+def create_evaluation_dashboard(results: dict[str, Any], output_dir: str | Path) -> None:
     """
     Create evaluation dashboard with summary plots.
     
@@ -171,7 +176,8 @@ def create_evaluation_dashboard(results: Dict[str, Any], output_dir: str):
         output_dir: Directory to save dashboard files
     """
     try:
-        os.makedirs(output_dir, exist_ok=True)
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
         
         # Create summary HTML report
         html_content = f"""
@@ -201,8 +207,7 @@ def create_evaluation_dashboard(results: Dict[str, Any], output_dir: str):
         </html>
         """
         
-        with open(os.path.join(output_dir, 'evaluation_report.html'), 'w') as f:
-            f.write(html_content)
+        (out_path / 'evaluation_report.html').write_text(html_content)
             
     except Exception:
         pass

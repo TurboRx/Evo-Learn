@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
+![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **A robust AutoML toolkit built on TPOT with production-ready preprocessing, config-driven runs, and baseline fallbacks.**
@@ -32,7 +32,7 @@
 
 ### From Source
 
-**Requirements**: Python 3.10, 3.11, or 3.12
+**Requirements**: Python 3.10, 3.11, 3.12, 3.13, or 3.14
 
 ```bash
 # Clone the repository
@@ -177,7 +177,7 @@ Check the [`examples/`](examples/) directory for sample code and tutorials.
 | Issue | Solution |
 |-------|----------|
 | TPOT fails or times out | Use `--baseline` flag or set `baseline: true` in config |
-| Python version errors | Ensure Python 3.10, 3.11, or 3.12 is installed |
+| Python version errors | Ensure Python 3.10, 3.11, 3.12, 3.13, or 3.14 is installed |
 | Missing dependencies | Run `pip install -r requirements.txt` |
 | Import errors | Verify installation with `python check_installation.py` |
 | Class imbalance | Stratified splits are applied automatically |

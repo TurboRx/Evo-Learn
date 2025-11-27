@@ -1,17 +1,21 @@
-import pandas as pd
+"""Data preprocessing utilities with modern Python 3.14 features."""
+from __future__ import annotations
+
 import numpy as np
-from typing import Tuple
+import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.impute import SimpleImputer
 
 
-def build_preprocessor(df: pd.DataFrame,
-                       target_column: str,
-                       impute_strategy: str = "median",
-                       handle_categoricals: bool = True,
-                       scale_numeric: bool = True) -> Tuple[Pipeline, list]:
+def build_preprocessor(
+    df: pd.DataFrame,
+    target_column: str,
+    impute_strategy: str = "median",
+    handle_categoricals: bool = True,
+    scale_numeric: bool = True
+) -> tuple[ColumnTransformer, list[str] | None]:
     """
     Build a preprocessing pipeline that imputes, encodes categoricals, and scales numeric features.
 

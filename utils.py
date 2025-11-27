@@ -1,8 +1,22 @@
-import time
+"""Utility functions with modern Python 3.14 features."""
+from __future__ import annotations
+
+import functools
+import json
 import logging
+import time
+from pathlib import Path
+from typing import Any, Callable
+
 import numpy as np
-from typing import Callable, Any, Dict, List, Tuple, Union
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
 # Configure the logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -20,6 +34,7 @@ def timer(unit: str = "seconds", log_level: int = logging.INFO) -> Callable:
         Callable: A decorator for measuring execution time.
     """
     def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             try:
@@ -46,7 +61,7 @@ def timer(unit: str = "seconds", log_level: int = logging.INFO) -> Callable:
         return wrapper
     return decorator
 
-def get_metrics(y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray = None) -> Dict[str, float]:
+def get_metrics(y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray | None = None) -> dict[str, float]:
     """
     Calculate various classification metrics.
 
@@ -96,7 +111,7 @@ def validate_input(data: Any, expected_type: Any, var_name: str) -> None:
     if expected_type in (int, float) and data < 0:
         raise ValueError(f"{var_name} must be non-negative")
 
-def save_model_metadata(model_info: Dict[str, Any], path: str) -> None:
+def save_model_metadata(model_info: dict[str, Any], path: str | Path) -> None:
     """
     Save model metadata to a file.
 
@@ -104,15 +119,14 @@ def save_model_metadata(model_info: Dict[str, Any], path: str) -> None:
         model_info (Dict[str, Any]): Dictionary containing model metadata.
         path (str): Path to save the metadata.
     """
-    import json
-    import os
+    file_path = Path(path)
     
     try:
         # Ensure the directory exists
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Convert numpy types to Python native types
-        def convert_numpy(obj):
+        # Convert numpy types to Python native types using isinstance checks
+        def convert_numpy(obj: Any) -> Any:
             if isinstance(obj, np.integer):
                 return int(obj)
             elif isinstance(obj, np.floating):
@@ -127,7 +141,7 @@ def save_model_metadata(model_info: Dict[str, Any], path: str) -> None:
         
         cleaned_info = convert_numpy(model_info)
         
-        with open(path, 'w') as f:
+        with file_path.open('w') as f:
             json.dump(cleaned_info, f, indent=4)
             
         logger.info(f"Model metadata saved to {path}")
@@ -135,7 +149,7 @@ def save_model_metadata(model_info: Dict[str, Any], path: str) -> None:
         logger.error(f"Failed to save model metadata: {e}")
         raise
 
-def cross_validate_model(model, X, y, cv=5, random_state=42) -> Dict[str, List[float]]:
+def cross_validate_model(model, X, y, cv: int = 5, random_state: int = 42) -> dict[str, list[float]]:
     """
     Perform cross-validation on a model and return detailed metrics.
 
