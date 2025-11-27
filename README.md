@@ -206,7 +206,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **TurboRx**
 - GitHub: [@TurboRx](https://github.com/TurboRx)
-- Repository: [Evo-Learn](https://github.com/TurboRx/Evo-Learn)
 
 ---
 
