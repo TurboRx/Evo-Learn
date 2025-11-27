@@ -125,21 +125,19 @@ def save_model_metadata(model_info: dict[str, Any], path: str | Path) -> None:
         # Ensure the directory exists
         file_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Convert numpy types to Python native types
-        def convert_numpy(obj):
-            match obj:
-                case np.integer():
-                    return int(obj)
-                case np.floating():
-                    return float(obj)
-                case np.ndarray():
-                    return obj.tolist()
-                case dict():
-                    return {k: convert_numpy(v) for k, v in obj.items()}
-                case list():
-                    return [convert_numpy(i) for i in obj]
-                case _:
-                    return obj
+        # Convert numpy types to Python native types using isinstance checks
+        def convert_numpy(obj: Any) -> Any:
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy(i) for i in obj]
+            return obj
         
         cleaned_info = convert_numpy(model_info)
         
