@@ -1,23 +1,34 @@
-import pandas as pd
-import numpy as np
-import logging
-import os
-import pickle
-from sklearn.model_selection import train_test_split
-from tpot import TPOTClassifier, TPOTRegressor
-from typing import Tuple, Dict, Any, Optional, Union, List
-import matplotlib.pyplot as plt
+"""Core AutoML functionality using TPOT with modern Python 3.14 features."""
+from __future__ import annotations
+
 import json
+import logging
+import pickle
+import warnings
 from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import yaml
-from preprocessing import build_preprocessor
-from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score, roc_auc_score,
-    mean_squared_error, mean_absolute_error, r2_score
+    accuracy_score,
+    f1_score,
+    mean_absolute_error,
+    mean_squared_error,
+    precision_score,
+    r2_score,
+    recall_score,
+    roc_auc_score,
 )
-import warnings
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from tpot import TPOTClassifier, TPOTRegressor
+
+from preprocessing import build_preprocessor
 
 # Configure logging
 logging.basicConfig(
@@ -30,7 +41,7 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
 
-def load_data(data_path: str) -> pd.DataFrame:
+def load_data(data_path: str | Path) -> pd.DataFrame:
     """
     Load CSV data with comprehensive error handling and validation.
     
@@ -46,14 +57,15 @@ def load_data(data_path: str) -> pd.DataFrame:
         ValueError: If data is empty or invalid
     """
     try:
-        if not os.path.exists(data_path):
+        path = Path(data_path)
+        if not path.exists():
             raise FileNotFoundError(
                 f"Data file not found: {data_path}\n"
                 f"Please ensure the file path is correct and the file exists."
             )
         
         # Check file extension
-        if not data_path.lower().endswith('.csv'):
+        if path.suffix.lower() != '.csv':
             logger.warning(f"File does not have .csv extension: {data_path}")
             
         data = pd.read_csv(data_path)
@@ -122,7 +134,7 @@ def split_data(
     test_size: float = 0.2,
     random_state: int = 42, 
     task: str = 'classification'
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     """
     Split data into train/test sets with stratification for classification.
     
@@ -180,7 +192,7 @@ def split_data(
         logger.error(f"Error during data splitting: {e}")
         raise
 
-def _load_config(config_path: Optional[str]) -> Dict[str, Any]:
+def _load_config(config_path: str | None) -> dict[str, Any]:
     """
     Load configuration from YAML file with error handling.
     
@@ -194,11 +206,12 @@ def _load_config(config_path: Optional[str]) -> Dict[str, Any]:
         return {}
     
     try:
-        if not os.path.exists(config_path):
+        path = Path(config_path)
+        if not path.exists():
             logger.warning(f"Config file not found: {config_path}, using defaults")
             return {}
             
-        with open(config_path, 'r') as f:
+        with path.open('r') as f:
             config = yaml.safe_load(f) or {}
             
         logger.info(f"Loaded configuration from: {config_path}")
@@ -211,7 +224,7 @@ def _load_config(config_path: Optional[str]) -> Dict[str, Any]:
         logger.warning(f"Failed to read config {config_path}: {e}, using defaults")
         return {}
 
-def _compute_classification_metrics(y_true, y_pred, y_proba=None) -> Dict[str, float]:
+def _compute_classification_metrics(y_true, y_pred, y_proba=None) -> dict[str, float]:
     """
     Compute comprehensive classification metrics.
     
@@ -250,7 +263,7 @@ def _compute_classification_metrics(y_true, y_pred, y_proba=None) -> Dict[str, f
             'f1_score': 0.0
         }
 
-def _compute_regression_metrics(y_true, y_pred) -> Dict[str, float]:
+def _compute_regression_metrics(y_true, y_pred) -> dict[str, float]:
     """
     Compute comprehensive regression metrics.
     
@@ -284,19 +297,19 @@ def _compute_regression_metrics(y_true, y_pred) -> Dict[str, float]:
         }
 
 def run_automl(
-    data_path: str, 
+    data_path: str | Path, 
     target_column: str, 
     task: str = 'classification',
     generations: int = 5, 
     population_size: int = 20,
     test_size: float = 0.2, 
     random_state: int = 42,
-    output_dir: str = 'models',
-    max_time_mins: Optional[int] = None,
-    max_eval_time_mins: Optional[int] = 5,
-    config_path: Optional[str] = None,
+    output_dir: str | Path = 'models',
+    max_time_mins: int | None = None,
+    max_eval_time_mins: int | None = 5,
+    config_path: str | None = None,
     always_baseline: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Run automated machine learning with TPOT or baseline models.
     
@@ -326,21 +339,24 @@ def run_automl(
     handle_categoricals = bool(cfg.get('handle_categoricals', True))
     impute_strategy = cfg.get('impute_strategy', 'median')
     scale_numeric = bool(cfg.get('scale_numeric', True))
-    output_dir = cfg.get('output_dir', output_dir)
+    output_dir = Path(cfg.get('output_dir', output_dir))
     
     if not always_baseline:
         always_baseline = bool(cfg.get('baseline', False))
     
-    # Validate inputs
-    if task.lower() not in ['classification', 'regression']:
-        raise ValueError(f"Task must be 'classification' or 'regression', got '{task}'")
+    # Validate inputs using match statement (Python 3.10+)
+    match task.lower():
+        case 'classification' | 'regression':
+            pass
+        case _:
+            raise ValueError(f"Task must be 'classification' or 'regression', got '{task}'")
     
     if not (0.0 < test_size < 1.0):
         raise ValueError(f"test_size must be between 0 and 1, got {test_size}")
     
     # Create output directory
     try:
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Using output directory: {output_dir}")
     except Exception as e:
         logger.error(f"Failed to create output directory {output_dir}: {e}")
@@ -365,7 +381,7 @@ def run_automl(
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    def _fit_and_package(final_estimator, model_tag: str) -> Dict[str, Any]:
+    def _fit_and_package(final_estimator, model_tag: str) -> dict[str, Any]:
         """
         Fit model with preprocessing and package results.
         
@@ -384,30 +400,31 @@ def run_automl(
             # Make predictions
             y_pred = model.predict(X_test)
             
-            # Compute metrics
-            if task.lower() == 'classification':
-                y_proba = None
-                if hasattr(model.named_steps['est'], 'predict_proba') and len(np.unique(y_test)) == 2:
-                    try:
-                        y_proba = model.predict_proba(X_test)[:, 1]
-                    except Exception as e:
-                        logger.warning(f"Could not get prediction probabilities: {e}")
-                metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
-            else:
-                metrics = _compute_regression_metrics(y_test, y_pred)
+            # Compute metrics using match statement
+            match task.lower():
+                case 'classification':
+                    y_proba = None
+                    if hasattr(model.named_steps['est'], 'predict_proba') and len(np.unique(y_test)) == 2:
+                        try:
+                            y_proba = model.predict_proba(X_test)[:, 1]
+                        except Exception as e:
+                            logger.warning(f"Could not get prediction probabilities: {e}")
+                    metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
+                case _:
+                    metrics = _compute_regression_metrics(y_test, y_pred)
             
             # Save model
             model_name = f"{model_tag}_{task}_{timestamp}"
-            model_path = os.path.join(output_dir, f"{model_name}.pkl")
+            model_path = output_dir / f"{model_name}.pkl"
             
-            with open(model_path, 'wb') as f:
+            with model_path.open('wb') as f:
                 pickle.dump(model, f)
             
             # Prepare result dictionary
             result = {
                 'model_name': model_name,
                 'task': task,
-                'model_path': model_path,
+                'model_path': str(model_path),
                 'pipeline_path': None,
                 'metrics': metrics,
                 'feature_names': feature_names or (X_train.columns.tolist() if hasattr(X_train, 'columns') else None),
@@ -425,8 +442,8 @@ def run_automl(
             }
             
             # Save metadata
-            metadata_path = os.path.join(output_dir, f"{model_name}_metadata.json")
-            with open(metadata_path, 'w') as f:
+            metadata_path = output_dir / f"{model_name}_metadata.json"
+            with metadata_path.open('w') as f:
                 json.dump(result, f, indent=4)
             
             logger.info(f"Model {model_name} saved successfully with metrics: {metrics}")
@@ -436,41 +453,43 @@ def run_automl(
             logger.error(f"Error in _fit_and_package: {e}")
             raise
     
-    # Use baseline if requested
+    # Use baseline if requested using match statement
     if always_baseline:
         logger.info("Using baseline model (TPOT optimization skipped)")
-        if task.lower() == 'classification':
-            return _fit_and_package(LogisticRegression(max_iter=200, random_state=random_state), "baseline_logreg")
-        else:
-            return _fit_and_package(Ridge(alpha=1.0, random_state=random_state), "baseline_ridge")
+        match task.lower():
+            case 'classification':
+                return _fit_and_package(LogisticRegression(max_iter=200, random_state=random_state), "baseline_logreg")
+            case _:
+                return _fit_and_package(Ridge(alpha=1.0, random_state=random_state), "baseline_ridge")
     
     # Try TPOT optimization
     try:
         logger.info(f"Starting TPOT {task} optimization...")
         
-        # Create TPOT instance
-        if task.lower() == 'classification':
-            tpot = TPOTClassifier(
-                generations=generations,
-                population_size=population_size,
-                verbosity=2,
-                random_state=random_state,
-                max_time_mins=max_time_mins,
-                max_eval_time_mins=max_eval_time_mins,
-                config_dict=None,
-                n_jobs=1  # Safer for stability
-            )
-        else:
-            tpot = TPOTRegressor(
-                generations=generations,
-                population_size=population_size,
-                verbosity=2,
-                random_state=random_state,
-                max_time_mins=max_time_mins,
-                max_eval_time_mins=max_eval_time_mins,
-                config_dict=None,
-                n_jobs=1  # Safer for stability
-            )
+        # Create TPOT instance using match statement
+        match task.lower():
+            case 'classification':
+                tpot = TPOTClassifier(
+                    generations=generations,
+                    population_size=population_size,
+                    verbosity=2,
+                    random_state=random_state,
+                    max_time_mins=max_time_mins,
+                    max_eval_time_mins=max_eval_time_mins,
+                    config_dict=None,
+                    n_jobs=1  # Safer for stability
+                )
+            case _:
+                tpot = TPOTRegressor(
+                    generations=generations,
+                    population_size=population_size,
+                    verbosity=2,
+                    random_state=random_state,
+                    max_time_mins=max_time_mins,
+                    max_eval_time_mins=max_eval_time_mins,
+                    config_dict=None,
+                    n_jobs=1  # Safer for stability
+                )
         
         # Create pipeline with preprocessing
         model = Pipeline(steps=[("preprocess", preprocessor), ("tpot", tpot)])
@@ -482,41 +501,42 @@ def run_automl(
         # Make predictions and compute metrics
         y_pred = model.predict(X_test)
         
-        if task.lower() == 'classification':
-            y_proba = None
-            if hasattr(model.named_steps['tpot'], 'predict_proba') and len(np.unique(y_test)) == 2:
-                try:
-                    y_proba = model.predict_proba(X_test)[:, 1]
-                except Exception as e:
-                    logger.warning(f"Could not get TPOT prediction probabilities: {e}")
-            metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
-        else:
-            metrics = _compute_regression_metrics(y_test, y_pred)
+        match task.lower():
+            case 'classification':
+                y_proba = None
+                if hasattr(model.named_steps['tpot'], 'predict_proba') and len(np.unique(y_test)) == 2:
+                    try:
+                        y_proba = model.predict_proba(X_test)[:, 1]
+                    except Exception as e:
+                        logger.warning(f"Could not get TPOT prediction probabilities: {e}")
+                metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
+            case _:
+                metrics = _compute_regression_metrics(y_test, y_pred)
         
         # Save model and export pipeline
         model_name = f"tpot_{task}_{timestamp}"
-        model_path = os.path.join(output_dir, f"{model_name}.pkl")
+        model_path = output_dir / f"{model_name}.pkl"
         
         # Try to export TPOT pipeline
         python_script_path = None
         try:
-            python_script_path = os.path.join(output_dir, f"{model_name}_pipeline.py")
-            tpot.export(python_script_path)
+            python_script_path = output_dir / f"{model_name}_pipeline.py"
+            tpot.export(str(python_script_path))
             logger.info(f"TPOT pipeline exported to: {python_script_path}")
         except Exception as e:
             logger.warning(f"Could not export TPOT pipeline: {e}")
             python_script_path = None
         
         # Save model
-        with open(model_path, 'wb') as f:
+        with model_path.open('wb') as f:
             pickle.dump(model, f)
         
         # Prepare results
         result = {
             'model_name': model_name,
             'task': task,
-            'model_path': model_path,
-            'pipeline_path': python_script_path,
+            'model_path': str(model_path),
+            'pipeline_path': str(python_script_path) if python_script_path else None,
             'metrics': metrics,
             'feature_names': feature_names or (X_train.columns.tolist() if hasattr(X_train, 'columns') else None),
             'target_column': target_column,
@@ -538,8 +558,8 @@ def run_automl(
         }
         
         # Save metadata
-        metadata_path = os.path.join(output_dir, f"{model_name}_metadata.json")
-        with open(metadata_path, 'w') as f:
+        metadata_path = output_dir / f"{model_name}_metadata.json"
+        with metadata_path.open('w') as f:
             json.dump(result, f, indent=4)
         
         # Try to create feature importance plot
@@ -558,10 +578,10 @@ def run_automl(
                     plt.xlabel('Feature Importance')
                     plt.title('Feature Importance of Optimized Model')
                     plt.tight_layout()
-                    fig_path = os.path.join(output_dir, f"{model_name}_feature_importance.png")
+                    fig_path = output_dir / f"{model_name}_feature_importance.png"
                     plt.savefig(fig_path, dpi=150, bbox_inches='tight')
                     plt.close()
-                    result['feature_importance_plot'] = fig_path
+                    result['feature_importance_plot'] = str(fig_path)
                     logger.info(f"Feature importance plot saved: {fig_path}")
         except Exception as e:
             logger.info(f"Skipping feature importance plot: {e}")
@@ -573,13 +593,15 @@ def run_automl(
         logger.error(f"TPOT optimization failed: {e}")
         logger.info("Falling back to baseline model")
         
-        # Fallback to baseline
-        if task.lower() == 'classification':
-            return _fit_and_package(LogisticRegression(max_iter=200, random_state=random_state), "baseline_logreg")
-        else:
-            return _fit_and_package(Ridge(alpha=1.0, random_state=random_state), "baseline_ridge")
+        # Fallback to baseline using match statement
+        match task.lower():
+            case 'classification':
+                return _fit_and_package(LogisticRegression(max_iter=200, random_state=random_state), "baseline_logreg")
+            case _:
+                return _fit_and_package(Ridge(alpha=1.0, random_state=random_state), "baseline_ridge")
 
-def load_model(model_path: str) -> Any:
+
+def load_model(model_path: str | Path) -> Any:
     """
     Load a saved model pipeline from disk.
     
@@ -594,10 +616,11 @@ def load_model(model_path: str) -> Any:
         Exception: For other loading errors
     """
     try:
-        if not os.path.exists(model_path):
+        path = Path(model_path)
+        if not path.exists():
             raise FileNotFoundError(f"Model file not found: {model_path}")
             
-        with open(model_path, 'rb') as f:
+        with path.open('rb') as f:
             model = pickle.load(f)
             
         logger.info(f"Model loaded successfully from: {model_path}")
@@ -610,7 +633,7 @@ def load_model(model_path: str) -> Any:
         logger.error(f"Error loading model from {model_path}: {e}")
         raise
 
-def predict(model: Any, data: Union[pd.DataFrame, str], target_column: Optional[str] = None) -> np.ndarray:
+def predict(model: Any, data: pd.DataFrame | str | Path, target_column: str | None = None) -> np.ndarray:
     """
     Make predictions with a saved pipeline.
     
@@ -627,7 +650,7 @@ def predict(model: Any, data: Union[pd.DataFrame, str], target_column: Optional[
     """
     try:
         # Load data if path provided
-        if isinstance(data, str):
+        if isinstance(data, (str, Path)):
             data = load_data(data)
         
         # Remove target column if present

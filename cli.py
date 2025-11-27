@@ -4,16 +4,19 @@ Command Line Interface for Evo-Learn AutoML Toolkit
 
 Professional CLI with comprehensive functionality for training, prediction,
 evaluation, and visualization of machine learning models.
+Uses modern Python 3.14 features including pattern matching.
 """
+from __future__ import annotations
 
 import argparse
-import logging
-import os
-import sys
 import json
-import pandas as pd
-import numpy as np
+import logging
+import sys
 from datetime import datetime
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # Configure logging
 logging.basicConfig(
@@ -88,7 +91,8 @@ def train_model(args):
         from core import run_automl, _load_config
         from visualization import create_evaluation_dashboard
         
-        os.makedirs(args.output_dir, exist_ok=True)
+        output_path = Path(args.output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
 
         # Determine task from config default if not provided
         cfg = _load_config(args.config)
@@ -106,11 +110,12 @@ def train_model(args):
         config_path = args.config
         overlay_path = None
         if overrides and not config_path:
-            import tempfile, yaml
+            import tempfile
+            import os as temp_os
+            import yaml
             fd, overlay_path = tempfile.mkstemp(prefix='evo_cfg_', suffix='.yaml')
-            os.close(fd)
-            with open(overlay_path, 'w') as f:
-                yaml.safe_dump(overrides, f)
+            temp_os.close(fd)
+            Path(overlay_path).write_text(yaml.safe_dump(overrides))
             config_path = overlay_path
 
         # Run AutoML
@@ -143,15 +148,15 @@ def train_model(args):
 
         # Generate visualizations if requested
         if args.visualize:
-            out_dir = os.path.join(args.output_dir, 'visualizations')
-            os.makedirs(out_dir, exist_ok=True)
+            out_dir = output_path / 'visualizations'
+            out_dir.mkdir(parents=True, exist_ok=True)
             create_evaluation_dashboard(results=result, output_dir=out_dir)
             logger.info(f"Visualizations saved to {out_dir}")
 
         # Clean up temporary config file
         if overlay_path:
             try:
-                os.remove(overlay_path)
+                Path(overlay_path).unlink()
             except Exception:
                 pass
         
@@ -195,7 +200,8 @@ def evaluate_model(args):
             save_actual_vs_pred
         )
         
-        os.makedirs(args.output_dir, exist_ok=True)
+        output_path = Path(args.output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
         
         # Load model and data
         model = load_model(args.model)
@@ -217,29 +223,28 @@ def evaluate_model(args):
 
         # Save evaluation report
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_file = os.path.join(args.output_dir, f"evaluation_report_{timestamp}.json")
+        report_file = output_path / f"evaluation_report_{timestamp}.json"
         
-        with open(report_file, 'w') as f:
-            json.dump({
-                'metrics': metrics,
-                'y_true': y.tolist(),
-                'y_pred': y_pred.tolist(),
-                'y_proba': (y_proba.tolist() if y_proba is not None else None)
-            }, f, indent=4)
+        report_file.write_text(json.dumps({
+            'metrics': metrics,
+            'y_true': y.tolist(),
+            'y_pred': y_pred.tolist(),
+            'y_proba': (y_proba.tolist() if y_proba is not None else None)
+        }, indent=4))
             
         # Generate plots
         if y_proba is not None:
-            save_roc_curve(y, y_proba, os.path.join(args.output_dir, f"roc_{timestamp}.png"))
-            save_pr_curve(y, y_proba, os.path.join(args.output_dir, f"pr_{timestamp}.png"))
+            save_roc_curve(y, y_proba, output_path / f"roc_{timestamp}.png")
+            save_pr_curve(y, y_proba, output_path / f"pr_{timestamp}.png")
             
         if np.issubdtype(y.dtype, np.number):
-            save_residuals(y, y_pred, os.path.join(args.output_dir, f"residuals_{timestamp}.png"))
-            save_actual_vs_pred(y, y_pred, os.path.join(args.output_dir, f"actual_vs_pred_{timestamp}.png"))
+            save_residuals(y, y_pred, output_path / f"residuals_{timestamp}.png")
+            save_actual_vs_pred(y, y_pred, output_path / f"actual_vs_pred_{timestamp}.png")
 
         # Create dashboard
         create_evaluation_dashboard(
             {'metrics': metrics, 'y_true': y.tolist(), 'y_pred': y_pred.tolist()}, 
-            args.output_dir
+            output_path
         )
         
         print(f"Evaluation report saved to: {report_file}")
@@ -256,11 +261,12 @@ def create_visualizations(args):
         from core import load_data
         from visualization import plot_feature_distributions, plot_correlation_matrix
         
-        os.makedirs(args.output_dir, exist_ok=True)
+        output_path = Path(args.output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
         
         data = load_data(args.data)
-        plot_feature_distributions(data=data, target_column=args.target, output_dir=args.output_dir)
-        plot_correlation_matrix(data=data, output_path=os.path.join(args.output_dir, 'correlation_matrix.png'))
+        plot_feature_distributions(data=data, target_column=args.target, output_dir=output_path)
+        plot_correlation_matrix(data=data, output_path=output_path / 'correlation_matrix.png')
         
         print(f"Visualizations saved to: {args.output_dir}")
         return 0
@@ -269,14 +275,17 @@ def create_visualizations(args):
         logger.error(f"Visualization failed: {e}")
         return 1
 
-def show_version():
+def show_version(args=None):
     """Display version information."""
     print("\nEvo-Learn AutoML Toolkit v1.2.0")
     print("Professional automated machine learning with TPOT")
     print("Features: Robust preprocessing, baseline fallbacks, comprehensive evaluation")
+    print("Python: 3.14+ compatible with modern features")
     
     try:
+        import sys
         import tpot, sklearn, pandas, numpy
+        print(f"\nPython version: {sys.version}")
         print("\nDependencies:")
         print(f"- TPOT: {tpot.__version__}")
         print(f"- scikit-learn: {sklearn.__version__}")
@@ -288,7 +297,7 @@ def show_version():
     return 0
 
 def main():
-    """Main CLI entry point."""
+    """Main CLI entry point using pattern matching."""
     parser = setup_argparse()
     args = parser.parse_args()
     
@@ -296,21 +305,21 @@ def main():
         parser.print_help()
         return 1
         
-    # Route to appropriate command handler
-    command_handlers = {
-        'train': train_model,
-        'predict': predict_with_model,
-        'evaluate': evaluate_model,
-        'visualize': create_visualizations,
-        'version': show_version
-    }
-    
-    handler = command_handlers.get(args.command)
-    if handler:
-        return handler(args)
-    else:
-        parser.print_help()
-        return 1
+    # Route to appropriate command handler using match statement
+    match args.command:
+        case 'train':
+            return train_model(args)
+        case 'predict':
+            return predict_with_model(args)
+        case 'evaluate':
+            return evaluate_model(args)
+        case 'visualize':
+            return create_visualizations(args)
+        case 'version':
+            return show_version(args)
+        case _:
+            parser.print_help()
+            return 1
 
 if __name__ == "__main__":
     sys.exit(main())
