@@ -1,4 +1,4 @@
-"""Core AutoML functionality using TPOT with modern Python 3.14 features."""
+"""Core AutoML functionality using TPOT with modern Python features."""
 from __future__ import annotations
 
 import json
@@ -83,7 +83,7 @@ def load_data(data_path: str | Path) -> pd.DataFrame:
                 f"Found only {len(data.columns)} column(s)."
             )
             
-        # Check for and handle mixed dtypes that might cause issues with numpy 2.x
+        # Check for and handle mixed dtypes that might cause issues
         for col in data.columns:
             if data[col].dtype == 'object':
                 # Try to convert numeric strings to proper numeric types
@@ -91,27 +91,9 @@ def load_data(data_path: str | Path) -> pd.DataFrame:
                 if not numeric_data.equals(data[col]):
                     data[col] = numeric_data
         
-        original_shape = data.shape
-        data = data.dropna()
-        rows_removed = original_shape[0] - data.shape[0]
+        # NOTE: Aggressive dropna removed. Imputation is handled in the preprocessor.
+        # This prevents accidental data loss when the pipeline can handle NaNs.
         
-        if rows_removed > 0:
-            logger.info(f"After dropna: shape={data.shape} (removed {rows_removed} rows with NaN values)")
-        
-        if data.empty:
-            raise ValueError(
-                "No data remaining after removing NaN values.\n"
-                "The dataset contains only rows with missing values. "
-                "Please clean your data or disable NaN dropping."
-            )
-        
-        # Warn if too much data was removed
-        if rows_removed > original_shape[0] * 0.5:
-            logger.warning(
-                f"More than 50% of rows ({rows_removed}/{original_shape[0]}) "
-                f"were removed due to NaN values. Consider imputation instead."
-            )
-            
         return data
         
     except FileNotFoundError:
@@ -166,9 +148,8 @@ def split_data(
     if task.lower() == 'classification':
         unique_classes = y.nunique()
         if unique_classes > 1 and unique_classes <= len(y) // 2:
-            # Only stratify if we have reasonable class distribution
             min_class_count = y.value_counts().min()
-            if min_class_count >= 2:  # Need at least 2 samples per class
+            if min_class_count >= 2:  # Need at least 2 samples per class for split
                 strat = y
                 logger.info(f"Using stratified split with {unique_classes} classes")
             else:
@@ -244,7 +225,6 @@ def _compute_classification_metrics(y_true, y_pred, y_proba=None) -> dict[str, f
             'f1_score': float(f1_score(y_true, y_pred, average='weighted', zero_division=0))
         }
         
-        # Add ROC AUC for binary classification if probabilities available
         if y_proba is not None and len(np.unique(y_true)) == 2:
             try:
                 metrics['roc_auc'] = float(roc_auc_score(y_true, y_proba))
@@ -255,7 +235,6 @@ def _compute_classification_metrics(y_true, y_pred, y_proba=None) -> dict[str, f
         
     except Exception as e:
         logger.error(f"Error computing classification metrics: {e}")
-        # Return basic metrics in case of error  
         return {
             'accuracy': float(accuracy_score(y_true, y_pred)),
             'precision': 0.0,
@@ -307,6 +286,7 @@ def run_automl(
     output_dir: str | Path = 'models',
     max_time_mins: int | None = None,
     max_eval_time_mins: int | None = 5,
+    n_jobs: int = -1,
     config_path: str | None = None,
     always_baseline: bool = False
 ) -> dict[str, Any]:
@@ -324,6 +304,7 @@ def run_automl(
         output_dir: Directory for saving models
         max_time_mins: Max time for TPOT optimization
         max_eval_time_mins: Max time per model evaluation
+        n_jobs: Number of CPU cores to use for TPOT (-1 for all)
         config_path: Path to YAML config file
         always_baseline: If True, skip TPOT and use baseline
         
@@ -340,11 +321,11 @@ def run_automl(
     impute_strategy = cfg.get('impute_strategy', 'median')
     scale_numeric = bool(cfg.get('scale_numeric', True))
     output_dir = Path(cfg.get('output_dir', output_dir))
+    n_jobs = int(cfg.get('n_jobs', n_jobs))
     
     if not always_baseline:
         always_baseline = bool(cfg.get('baseline', False))
     
-    # Validate inputs using match statement (Python 3.10+)
     match task.lower():
         case 'classification' | 'regression':
             pass
@@ -354,7 +335,6 @@ def run_automl(
     if not (0.0 < test_size < 1.0):
         raise ValueError(f"test_size must be between 0 and 1, got {test_size}")
     
-    # Create output directory
     try:
         output_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Using output directory: {output_dir}")
@@ -362,11 +342,9 @@ def run_automl(
         logger.error(f"Failed to create output directory {output_dir}: {e}")
         raise
     
-    # Load and split data
     data = load_data(data_path)
     X_train, X_test, y_train, y_test = split_data(data, target_column, test_size, random_state, task)
     
-    # Build preprocessing pipeline
     try:
         preprocessor, feature_names = build_preprocessor(
             df=data, target_column=target_column,
@@ -382,25 +360,13 @@ def run_automl(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     def _fit_and_package(final_estimator, model_tag: str) -> dict[str, Any]:
-        """
-        Fit model with preprocessing and package results.
-        
-        Args:
-            final_estimator: The ML estimator to use
-            model_tag: Tag for naming the model
-            
-        Returns:
-            Dict containing model information and results
-        """
+        """Fit model with preprocessing and package results."""
         try:
-            # Create and fit pipeline
             model = Pipeline(steps=[("preprocess", preprocessor), ("est", final_estimator)])
             model.fit(X_train, y_train)
             
-            # Make predictions
             y_pred = model.predict(X_test)
             
-            # Compute metrics using match statement
             match task.lower():
                 case 'classification':
                     y_proba = None
@@ -413,14 +379,12 @@ def run_automl(
                 case _:
                     metrics = _compute_regression_metrics(y_test, y_pred)
             
-            # Save model
             model_name = f"{model_tag}_{task}_{timestamp}"
             model_path = output_dir / f"{model_name}.pkl"
             
             with model_path.open('wb') as f:
                 pickle.dump(model, f)
             
-            # Prepare result dictionary
             result = {
                 'model_name': model_name,
                 'task': task,
@@ -441,7 +405,6 @@ def run_automl(
                 'model_type': model_tag
             }
             
-            # Save metadata
             metadata_path = output_dir / f"{model_name}_metadata.json"
             with metadata_path.open('w') as f:
                 json.dump(result, f, indent=4)
@@ -453,7 +416,6 @@ def run_automl(
             logger.error(f"Error in _fit_and_package: {e}")
             raise
     
-    # Use baseline if requested using match statement
     if always_baseline:
         logger.info("Using baseline model (TPOT optimization skipped)")
         match task.lower():
@@ -462,11 +424,9 @@ def run_automl(
             case _:
                 return _fit_and_package(Ridge(alpha=1.0, random_state=random_state), "baseline_ridge")
     
-    # Try TPOT optimization
     try:
         logger.info(f"Starting TPOT {task} optimization...")
         
-        # Create TPOT instance using match statement
         match task.lower():
             case 'classification':
                 tpot = TPOTClassifier(
@@ -477,7 +437,7 @@ def run_automl(
                     max_time_mins=max_time_mins,
                     max_eval_time_mins=max_eval_time_mins,
                     config_dict=None,
-                    n_jobs=1  # Safer for stability
+                    n_jobs=n_jobs
                 )
             case _:
                 tpot = TPOTRegressor(
@@ -488,17 +448,13 @@ def run_automl(
                     max_time_mins=max_time_mins,
                     max_eval_time_mins=max_eval_time_mins,
                     config_dict=None,
-                    n_jobs=1  # Safer for stability
+                    n_jobs=n_jobs
                 )
         
-        # Create pipeline with preprocessing
         model = Pipeline(steps=[("preprocess", preprocessor), ("tpot", tpot)])
-        
-        # Fit model
         model.fit(X_train, y_train)
         logger.info("TPOT optimization completed successfully")
         
-        # Make predictions and compute metrics
         y_pred = model.predict(X_test)
         
         match task.lower():
@@ -513,11 +469,9 @@ def run_automl(
             case _:
                 metrics = _compute_regression_metrics(y_test, y_pred)
         
-        # Save model and export pipeline
         model_name = f"tpot_{task}_{timestamp}"
         model_path = output_dir / f"{model_name}.pkl"
         
-        # Try to export TPOT pipeline
         python_script_path = None
         try:
             python_script_path = output_dir / f"{model_name}_pipeline.py"
@@ -527,11 +481,9 @@ def run_automl(
             logger.warning(f"Could not export TPOT pipeline: {e}")
             python_script_path = None
         
-        # Save model
         with model_path.open('wb') as f:
             pickle.dump(model, f)
         
-        # Prepare results
         result = {
             'model_name': model_name,
             'task': task,
@@ -547,7 +499,8 @@ def run_automl(
                 'generations': generations,
                 'population_size': population_size,
                 'max_time_mins': max_time_mins,
-                'max_eval_time_mins': max_eval_time_mins
+                'max_eval_time_mins': max_eval_time_mins,
+                'n_jobs': n_jobs
             },
             'preprocessing': {
                 'handle_categoricals': handle_categoricals,
@@ -557,12 +510,10 @@ def run_automl(
             'model_type': 'tpot'
         }
         
-        # Save metadata
         metadata_path = output_dir / f"{model_name}_metadata.json"
         with metadata_path.open('w') as f:
             json.dump(result, f, indent=4)
         
-        # Try to create feature importance plot
         try:
             final_est = model.named_steps['tpot'].fitted_pipeline_
             if hasattr(final_est, 'feature_importances_'):
@@ -593,13 +544,11 @@ def run_automl(
         logger.error(f"TPOT optimization failed: {e}")
         logger.info("Falling back to baseline model")
         
-        # Fallback to baseline using match statement
         match task.lower():
             case 'classification':
                 return _fit_and_package(LogisticRegression(max_iter=200, random_state=random_state), "baseline_logreg")
             case _:
                 return _fit_and_package(Ridge(alpha=1.0, random_state=random_state), "baseline_ridge")
-
 
 def load_model(model_path: str | Path) -> Any:
     """
@@ -649,18 +598,15 @@ def predict(model: Any, data: pd.DataFrame | str | Path, target_column: str | No
         Exception: For prediction errors
     """
     try:
-        # Load data if path provided
         if isinstance(data, (str, Path)):
             data = load_data(data)
         
-        # Remove target column if present
         if target_column and target_column in data.columns:
             X = data.drop(columns=[target_column])
             logger.info(f"Removed target column '{target_column}' from prediction data")
         else:
             X = data.copy()
         
-        # Make predictions
         predictions = model.predict(X)
         logger.info(f"Predictions completed: {len(predictions)} samples")
         
