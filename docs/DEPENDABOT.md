@@ -49,9 +49,13 @@ These changes ensure compatibility with GitHub's move away from comment-based co
 4. **CI tests run** automatically on all PRs
 5. **Auto-merge completes** once CI passes (squash merge)
 
-## Security Updates
+## Update Policy
 
-Security updates are NOT ignored and will be created immediately when detected, regardless of the weekly schedule.
+The configuration ignores patch and minor version updates to reduce noise. However:
+- **Major version updates** are NOT ignored and will be created when detected
+- **Security updates** are NOT ignored and will be created immediately when detected, regardless of the weekly schedule
+
+This policy balances keeping dependencies up-to-date with minimizing disruption from frequent minor updates.
 
 ## Customization
 
