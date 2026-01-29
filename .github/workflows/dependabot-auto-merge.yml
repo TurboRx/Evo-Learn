@@ -6,6 +6,11 @@ on:
     branches:
       - main
 
+# Explicit permissions required for Dependabot workflows (GitHub 2026 changes)
+permissions:
+  pull-requests: write
+  contents: write
+
 jobs:
   enable-auto-merge:
     runs-on: ubuntu-latest
@@ -15,4 +20,5 @@ jobs:
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
           merge-method: squash
