@@ -149,7 +149,14 @@ def save_model_metadata(model_info: dict[str, Any], path: str | Path) -> None:
         logger.error(f"Failed to save model metadata: {e}")
         raise
 
-def cross_validate_model(model, X, y, cv: int = 5, random_state: int = 42) -> dict[str, list[float]]:
+def cross_validate_model(
+    model,
+    X,
+    y,
+    task: str = "classification",
+    cv: int = 5,
+    random_state: int = 42,
+) -> dict[str, list[float]]:
     """
     Perform cross-validation on a model and return detailed metrics.
 
@@ -157,51 +164,86 @@ def cross_validate_model(model, X, y, cv: int = 5, random_state: int = 42) -> di
         model: The model to validate.
         X: Feature data.
         y: Target data.
+        task (str): Task type ('classification' or 'regression').
         cv (int): Number of cross-validation folds.
         random_state (int): Random seed for reproducibility.
 
     Returns:
         Dict[str, List[float]]: Dictionary of metrics with list of values for each fold.
     """
-    from sklearn.model_selection import StratifiedKFold
-    
-    metrics = {
-        'accuracy': [],
-        'precision': [],
-        'recall': [],
-        'f1': []
-    }
-    
-    if hasattr(model, 'predict_proba'):
-        metrics['roc_auc'] = []
-    
-    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
-    
-    for train_idx, test_idx in skf.split(X, y):
-        X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-        y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-        
+    from sklearn.model_selection import StratifiedKFold, KFold
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+    task = task.lower()
+    is_classification = task == "classification"
+
+    if is_classification:
+        metrics: dict[str, list[float]] = {
+            'accuracy': [],
+            'precision': [],
+            'recall': [],
+            'f1': []
+        }
+        if hasattr(model, 'predict_proba'):
+            metrics['roc_auc'] = []
+    else:
+        metrics = {
+            'mse': [],
+            'rmse': [],
+            'mae': [],
+            'r2': []
+        }
+
+    splitter = None
+    if is_classification:
+        unique_classes, class_counts = np.unique(y, return_counts=True)
+        can_stratify = len(unique_classes) >= 2 and class_counts.min() >= 2
+        if can_stratify:
+            splitter = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
+        else:
+            logger.warning(
+                "StratifiedKFold requires at least 2 samples per class; "
+                "falling back to KFold."
+            )
+    if splitter is None:
+        splitter = KFold(n_splits=cv, shuffle=True, random_state=random_state)
+
+    for train_idx, test_idx in splitter.split(X, y):
+        X_train = X.iloc[train_idx] if hasattr(X, 'iloc') else X[train_idx]
+        X_test = X.iloc[test_idx] if hasattr(X, 'iloc') else X[test_idx]
+        y_train = y.iloc[train_idx] if hasattr(y, 'iloc') else y[train_idx]
+        y_test = y.iloc[test_idx] if hasattr(y, 'iloc') else y[test_idx]
+
         # Train the model
         model.fit(X_train, y_train)
-        
+
         # Get predictions
         y_pred = model.predict(X_test)
-        
-        # Calculate metrics
-        fold_metrics = {
-            'accuracy': accuracy_score(y_test, y_pred),
-            'precision': precision_score(y_test, y_pred, average='weighted', zero_division=0),
-            'recall': recall_score(y_test, y_pred, average='weighted', zero_division=0),
-            'f1': f1_score(y_test, y_pred, average='weighted', zero_division=0)
-        }
-        
-        # Add ROC AUC if available
-        if 'roc_auc' in metrics and len(np.unique(y)) == 2:
-            y_proba = model.predict_proba(X_test)[:, 1]
-            fold_metrics['roc_auc'] = roc_auc_score(y_test, y_proba)
-        
+
+        if is_classification:
+            # Calculate metrics
+            fold_metrics: dict[str, float] = {
+                'accuracy': accuracy_score(y_test, y_pred),
+                'precision': precision_score(y_test, y_pred, average='weighted', zero_division=0),
+                'recall': recall_score(y_test, y_pred, average='weighted', zero_division=0),
+                'f1': f1_score(y_test, y_pred, average='weighted', zero_division=0)
+            }
+
+            # Add ROC AUC if available
+            if 'roc_auc' in metrics and len(np.unique(y)) == 2:
+                y_proba = model.predict_proba(X_test)[:, 1]
+                fold_metrics['roc_auc'] = roc_auc_score(y_test, y_proba)
+        else:
+            mse = mean_squared_error(y_test, y_pred)
+            fold_metrics = {
+                'mse': mse,
+                'rmse': float(np.sqrt(mse)),
+                'mae': mean_absolute_error(y_test, y_pred),
+                'r2': r2_score(y_test, y_pred)
+            }
+
         # Add metrics to results
         for metric, value in fold_metrics.items():
             metrics[metric].append(value)
-    
+
     return metrics
