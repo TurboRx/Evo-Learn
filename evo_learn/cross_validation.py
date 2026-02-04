@@ -41,11 +41,23 @@ def cross_validate_model(
     
     # Choose appropriate splitter
     if task.lower() == "classification":
-        splitter = StratifiedKFold(
-            n_splits=cv_folds,
-            shuffle=True,
-            random_state=random_state
-        )
+        min_class_count = y.value_counts().min()
+        if min_class_count < 2:
+            logger.warning(
+                "Minimum class count is %s; using KFold instead of StratifiedKFold.",
+                min_class_count
+            )
+            splitter = KFold(
+                n_splits=cv_folds,
+                shuffle=True,
+                random_state=random_state
+            )
+        else:
+            splitter = StratifiedKFold(
+                n_splits=cv_folds,
+                shuffle=True,
+                random_state=random_state
+            )
     else:
         splitter = KFold(
             n_splits=cv_folds,
@@ -168,11 +180,23 @@ def nested_cross_validation(
     
     # Outer loop for performance estimation
     if task.lower() == "classification":
-        outer_splitter = StratifiedKFold(
-            n_splits=outer_folds,
-            shuffle=True,
-            random_state=random_state
-        )
+        min_class_count = y.value_counts().min()
+        if min_class_count < 2:
+            logger.warning(
+                "Minimum class count is %s; using KFold instead of StratifiedKFold.",
+                min_class_count
+            )
+            outer_splitter = KFold(
+                n_splits=outer_folds,
+                shuffle=True,
+                random_state=random_state
+            )
+        else:
+            outer_splitter = StratifiedKFold(
+                n_splits=outer_folds,
+                shuffle=True,
+                random_state=random_state
+            )
     else:
         outer_splitter = KFold(
             n_splits=outer_folds,
