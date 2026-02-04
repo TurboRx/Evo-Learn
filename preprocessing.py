@@ -42,6 +42,14 @@ def build_preprocessor(
         ])
         transformers.append(("cat", cat_pipeline, categorical_cols))
 
+    if not transformers:
+        detected_dtypes = X.dtypes.astype(str).to_dict()
+        raise ValueError(
+            "No usable features remain after preprocessing. "
+            f"handle_categoricals={handle_categoricals}. "
+            f"detected_dtypes={detected_dtypes}"
+        )
+
     preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
 
     # Fit once to get feature names out (optional; actual fitting will be done inside TPOT pipeline)

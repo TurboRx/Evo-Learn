@@ -87,6 +87,7 @@ def setup_argparse():
 def train_model(args):
     """Execute model training command."""
     logger.info(f"Starting training task={args.task}")
+    overlay_path = None
     try:
         from core import run_automl, _load_config
         from visualization import create_evaluation_dashboard
@@ -108,7 +109,6 @@ def train_model(args):
             overrides['scale_numeric'] = False
 
         config_path = args.config
-        overlay_path = None
         if overrides and not config_path:
             import tempfile
             import os as temp_os
@@ -153,18 +153,20 @@ def train_model(args):
             create_evaluation_dashboard(results=result, output_dir=out_dir)
             logger.info(f"Visualizations saved to {out_dir}")
 
-        # Clean up temporary config file
-        if overlay_path:
-            try:
-                Path(overlay_path).unlink()
-            except Exception:
-                pass
-        
         return 0
         
     except Exception as e:
         logger.error(f"Training failed: {e}")
         return 1
+    finally:
+        # Clean up temporary config file
+        if overlay_path:
+            try:
+                overlay_file = Path(overlay_path)
+                if overlay_file.exists():
+                    overlay_file.unlink()
+            except Exception:
+                pass
 
 def predict_with_model(args):
     """Execute model prediction command."""

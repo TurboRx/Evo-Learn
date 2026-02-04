@@ -105,7 +105,10 @@ def validate_input(data: Any, expected_type: Any, var_name: str) -> None:
     if not isinstance(data, expected_type):
         raise TypeError(f"{var_name} must be of type {expected_type.__name__}, got {type(data).__name__}")
     
-    if expected_type in (str, list, dict, np.ndarray) and not data:
+    if expected_type is np.ndarray and data.size == 0:
+        raise ValueError(f"{var_name} cannot be empty")
+
+    if expected_type in (str, list, dict) and not data:
         raise ValueError(f"{var_name} cannot be empty")
     
     if expected_type in (int, float) and data < 0:
@@ -246,4 +249,5 @@ def cross_validate_model(
         for metric, value in fold_metrics.items():
             metrics[metric].append(value)
 
+    
     return metrics
