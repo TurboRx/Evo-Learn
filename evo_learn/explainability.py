@@ -69,11 +69,33 @@ class ModelExplainer:
         
         # Transform data through preprocessing
         if hasattr(self.model, 'named_steps'):
-            X_test_transformed = self.model.named_steps['preprocess'].transform(X_test)
-            X_train_transformed = self.model.named_steps['preprocess'].transform(
-                self.X_train.sample(min(100, len(self.X_train)), random_state=42)
+            steps = list(self.model.named_steps.items())
+            estimator_step = next(
+                (step for step in reversed(steps) if hasattr(step[1], "predict") or hasattr(step[1], "predict_proba")),
+                None,
             )
-            model_to_explain = self.model.named_steps.get('est') or self.model.named_steps.get('tpot')
+            if estimator_step is None:
+                raise ValueError("Pipeline is missing an estimator step with predict/predict_proba.")
+            estimator_name, model_to_explain = estimator_step
+
+            preprocess_step = next(
+                (
+                    step
+                    for step in steps
+                    if step[0] != estimator_name and hasattr(step[1], "transform")
+                ),
+                None,
+            )
+            if preprocess_step is None:
+                X_test_transformed = X_test
+                X_train_transformed = self.X_train.sample(
+                    min(100, len(self.X_train)), random_state=42
+                )
+            else:
+                X_test_transformed = preprocess_step[1].transform(X_test)
+                X_train_transformed = preprocess_step[1].transform(
+                    self.X_train.sample(min(100, len(self.X_train)), random_state=42)
+                )
         else:
             X_test_transformed = X_test
             X_train_transformed = self.X_train.sample(min(100, len(self.X_train)), random_state=42)
