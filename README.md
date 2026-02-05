@@ -28,17 +28,17 @@
 - **Type-Safe**: Comprehensive type hints throughout
 - **Well-Tested**: Extensive test suite with good coverage
 
-## 🆕 What's New in v1.3.0
+---
 
 ### Security & Reliability Improvements
-- **🔒 Security**: Replaced pickle with joblib for safer model serialization
-- **✅ Data Validation**: Automatic validation before training catches:
+- **Security**: Replaced pickle with joblib for safer model serialization
+- **Data Validation**: Automatic validation before training catches:
   - NaN values in target column
   - Single-class classification (minimum 2 classes required)
   - Severe class imbalance (warns if >10:1 ratio)
   - All-NaN features and constant features
-- **🛡️ OOM Protection**: File size limit validation (default 500MB) prevents memory exhaustion
-- **📝 Better Logging**: All errors now properly logged instead of silently failing
+- **OOM Protection**: File size limit validation (default 500MB) prevents memory exhaustion
+- **Better Logging**: All errors now properly logged instead of silently failing
 
 ### Code Quality
 - **Type Hints**: Complete type annotations for all public functions
@@ -50,8 +50,7 @@
 - **Configurable Warnings**: Set `EVO_LEARN_SHOW_WARNINGS=true` to see all warnings
 - **Better Error Messages**: More informative validation errors with actionable guidance
 - **Comprehensive Tests**: 26 tests covering new features and edge cases
-
-See [CHANGELOG.md](CHANGELOG.md) for complete details.
+---
 
 ## Installation
 
