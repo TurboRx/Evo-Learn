@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import json
 import logging
-import pickle
 import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -33,20 +33,23 @@ from preprocessing import build_preprocessor
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, 
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Suppress some common warnings for cleaner output
-warnings.filterwarnings('ignore', category=FutureWarning)
-warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
+# Suppress some warnings for cleaner output (can be configured via environment)
+import os
+if os.getenv('EVO_LEARN_SHOW_WARNINGS', '').lower() != 'true':
+    warnings.filterwarnings('ignore', category=FutureWarning)
+    warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
 
-def load_data(data_path: str | Path) -> pd.DataFrame:
+def load_data(data_path: str | Path, max_size_mb: int = 500) -> pd.DataFrame:
     """
     Load CSV data with comprehensive error handling and validation.
     
     Args:
         data_path: Path to the CSV file
+        max_size_mb: Maximum file size in MB (default: 500MB)
         
     Returns:
         pd.DataFrame: Loaded and cleaned data
@@ -54,7 +57,7 @@ def load_data(data_path: str | Path) -> pd.DataFrame:
     Raises:
         FileNotFoundError: If the file doesn't exist
         pd.errors.ParserError: If CSV parsing fails
-        ValueError: If data is empty or invalid
+        ValueError: If data is empty, invalid, or too large
     """
     try:
         path = Path(data_path)
@@ -63,6 +66,15 @@ def load_data(data_path: str | Path) -> pd.DataFrame:
                 f"Data file not found: {data_path}\n"
                 f"Please ensure the file path is correct and the file exists."
             )
+        
+        # Check file size to prevent OOM
+        file_size_mb = path.stat().st_size / (1024 * 1024)
+        if file_size_mb > max_size_mb:
+            raise ValueError(
+                f"File size ({file_size_mb:.2f}MB) exceeds maximum allowed size ({max_size_mb}MB)\n"
+                f"Consider using a smaller dataset or increasing max_size_mb parameter."
+            )
+        logger.info(f"Loading file: {data_path} ({file_size_mb:.2f}MB)")
         
         # Check file extension
         if path.suffix.lower() != '.csv':
@@ -382,8 +394,8 @@ def run_automl(
             model_name = f"{model_tag}_{task}_{timestamp}"
             model_path = output_dir / f"{model_name}.pkl"
             
-            with model_path.open('wb') as f:
-                pickle.dump(model, f)
+            # Use joblib for safer model serialization
+            joblib.dump(model, model_path, compress=3)
             
             result = {
                 'model_name': model_name,
@@ -481,8 +493,8 @@ def run_automl(
             logger.warning(f"Could not export TPOT pipeline: {e}")
             python_script_path = None
         
-        with model_path.open('wb') as f:
-            pickle.dump(model, f)
+        # Use joblib for safer model serialization  
+        joblib.dump(model, model_path, compress=3)
         
         result = {
             'model_name': model_name,
@@ -568,10 +580,10 @@ def load_model(model_path: str | Path) -> Any:
         path = Path(model_path)
         if not path.exists():
             raise FileNotFoundError(f"Model file not found: {model_path}")
-            
-        with path.open('rb') as f:
-            model = pickle.load(f)
-            
+        
+        # Use joblib for safer deserialization
+        model = joblib.load(path)
+        
         logger.info(f"Model loaded successfully from: {model_path}")
         return model
         

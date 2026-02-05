@@ -1,11 +1,15 @@
 """Professional visualization functions with modern Python 3.14 features."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Professional visualization functions
 
@@ -34,8 +38,9 @@ def save_roc_curve(y_true, y_proba, path: str | Path) -> None:
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
-    except Exception:
-        pass
+        logger.info(f"ROC curve saved to {path}")
+    except Exception as e:
+        logger.error(f"Failed to save ROC curve to {path}: {e}")
 
 def save_pr_curve(y_true, y_proba, path: str | Path) -> None:
     """
@@ -61,8 +66,9 @@ def save_pr_curve(y_true, y_proba, path: str | Path) -> None:
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
-    except Exception:
-        pass
+        logger.info(f"PR curve saved to {path}")
+    except Exception as e:
+        logger.error(f"Failed to save PR curve to {path}: {e}")
 
 def save_residuals(y_true, y_pred, path: str | Path) -> None:
     """
@@ -84,8 +90,9 @@ def save_residuals(y_true, y_pred, path: str | Path) -> None:
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
-    except Exception:
-        pass
+        logger.info(f"Residuals plot saved to {path}")
+    except Exception as e:
+        logger.error(f"Failed to save residuals plot to {path}: {e}")
 
 def save_actual_vs_pred(y_true, y_pred, path: str | Path) -> None:
     """
@@ -108,8 +115,9 @@ def save_actual_vs_pred(y_true, y_pred, path: str | Path) -> None:
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
-    except Exception:
-        pass
+        logger.info(f"Actual vs predicted plot saved to {path}")
+    except Exception as e:
+        logger.error(f"Failed to save actual vs predicted plot to {path}: {e}")
 
 def plot_feature_distributions(data, target_column: str, output_dir: str | Path) -> None:
     """
@@ -131,15 +139,20 @@ def plot_feature_distributions(data, target_column: str, output_dir: str | Path)
             numeric_cols.remove(target_column)
         
         # Create distribution plots
-        for col in numeric_cols[:10]:  # Limit to first 10 features
+        num_plots = min(len(numeric_cols), 10)  # Limit to first 10 features
+        for col in numeric_cols[:num_plots]:
             plt.figure(figsize=(8, 6))
             sns.histplot(data=data, x=col, hue=target_column, kde=True)
             plt.title(f'Distribution of {col}')
             plt.tight_layout()
             plt.savefig(out_path / f'dist_{col}.png')
             plt.close()
-    except Exception:
-        pass
+        
+        if len(numeric_cols) > 10:
+            logger.warning(f"Only plotted first 10 of {len(numeric_cols)} numeric features")
+        logger.info(f"Feature distribution plots saved to {output_dir}")
+    except Exception as e:
+        logger.error(f"Failed to create feature distribution plots: {e}")
 
 def plot_correlation_matrix(data, output_path: str | Path) -> None:
     """
@@ -164,8 +177,11 @@ def plot_correlation_matrix(data, output_path: str | Path) -> None:
             plt.tight_layout()
             plt.savefig(output_path)
             plt.close()
-    except Exception:
-        pass
+            logger.info(f"Correlation matrix saved to {output_path}")
+        else:
+            logger.warning("Not enough numeric columns for correlation matrix")
+    except Exception as e:
+        logger.error(f"Failed to create correlation matrix: {e}")
 
 def create_evaluation_dashboard(results: dict[str, Any], output_dir: str | Path) -> None:
     """
@@ -208,6 +224,7 @@ def create_evaluation_dashboard(results: dict[str, Any], output_dir: str | Path)
         """
         
         (out_path / 'evaluation_report.html').write_text(html_content)
+        logger.info(f"Evaluation dashboard saved to {output_dir}")
             
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"Failed to create evaluation dashboard: {e}")
