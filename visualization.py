@@ -1,213 +1,225 @@
-"""Professional visualization functions with modern Python 3.14 features."""
+"""Visualization functions."""
+
 from __future__ import annotations
 
+import logging
+import re
 from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-# Professional visualization functions
+logger = logging.getLogger(__name__)
 
-def save_roc_curve(y_true, y_proba, path: str | Path) -> None:
-    """
-    Save ROC curve plot to file.
-    
-    Args:
-        y_true: True binary labels
-        y_proba: Predicted probabilities for positive class
-        path: Output file path
-    """
+
+def safe_filename(filename: str, max_length: int = 200) -> str:
+    """Sanitize filename for filesystem safety."""
+    sanitized = re.sub(r'[/\\:*?"<>|]', "_", str(filename))
+    sanitized = re.sub(r"[\s_]+", "_", sanitized)
+    sanitized = sanitized.strip(". ")
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length]
+    return sanitized if sanitized else "unnamed"
+
+
+def save_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> None:
+    """Save ROC curve plot."""
     try:
         from sklearn.metrics import roc_curve, auc
+
         fpr, tpr, _ = roc_curve(y_true, y_proba)
         roc_auc = auc(fpr, tpr)
         plt.figure(figsize=(6, 5))
-        plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
-        plt.plot([0, 1], [0, 1], color='navy', lw=1, linestyle='--')
+        plt.plot(fpr, tpr, color="darkorange", lw=2, label=f"ROC (AUC={roc_auc:.3f})")
+        plt.plot([0, 1], [0, 1], color="navy", lw=1, linestyle="--")
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Receiver Operating Characteristic')
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.title("ROC Curve")
         plt.legend(loc="lower right")
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
-    except Exception:
-        pass
+        logger.info(f"ROC saved: {path}")
+    except Exception as e:
+        logger.error(f"ROC save failed: {e}")
 
-def save_pr_curve(y_true, y_proba, path: str | Path) -> None:
-    """
-    Save Precision-Recall curve plot to file.
-    
-    Args:
-        y_true: True binary labels
-        y_proba: Predicted probabilities for positive class
-        path: Output file path
-    """
+
+def save_pr_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> None:
+    """Save Precision-Recall curve plot."""
     try:
         from sklearn.metrics import precision_recall_curve, average_precision_score
+
         precision, recall, _ = precision_recall_curve(y_true, y_proba)
         ap = average_precision_score(y_true, y_proba)
         plt.figure(figsize=(6, 5))
-        plt.plot(recall, precision, color='green', lw=2, label=f'PR curve (AP = {ap:.3f})')
+        plt.plot(recall, precision, color="green", lw=2, label=f"PR (AP={ap:.3f})")
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
-        plt.xlabel('Recall')
-        plt.ylabel('Precision')
-        plt.title('Precision-Recall Curve')
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
+        plt.title("Precision-Recall Curve")
         plt.legend(loc="lower left")
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
-    except Exception:
-        pass
+        logger.info(f"PR saved: {path}")
+    except Exception as e:
+        logger.error(f"PR save failed: {e}")
 
-def save_residuals(y_true, y_pred, path: str | Path) -> None:
-    """
-    Save residuals plot for regression models.
-    
-    Args:
-        y_true: True values
-        y_pred: Predicted values
-        path: Output file path
-    """
+
+def save_residuals(y_true: np.ndarray, y_pred: np.ndarray, path: str | Path) -> None:
+    """Save residuals plot for regression."""
     try:
         residuals = np.array(y_true) - np.array(y_pred)
         plt.figure(figsize=(6, 5))
         plt.scatter(y_pred, residuals, s=12, alpha=0.7)
-        plt.axhline(0, color='red', linestyle='--', lw=1)
-        plt.xlabel('Predicted')
-        plt.ylabel('Residuals (y - y_pred)')
-        plt.title('Residuals Plot')
+        plt.axhline(0, color="red", linestyle="--", lw=1)
+        plt.xlabel("Predicted")
+        plt.ylabel("Residuals")
+        plt.title("Residuals Plot")
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
-    except Exception:
-        pass
+        logger.info(f"Residuals saved: {path}")
+    except Exception as e:
+        logger.error(f"Residuals save failed: {e}")
 
-def save_actual_vs_pred(y_true, y_pred, path: str | Path) -> None:
-    """
-    Save actual vs predicted values plot.
-    
-    Args:
-        y_true: True values
-        y_pred: Predicted values
-        path: Output file path
-    """
+
+def save_actual_vs_pred(
+    y_true: np.ndarray, y_pred: np.ndarray, path: str | Path
+) -> None:
+    """Save actual vs predicted plot."""
     try:
         plt.figure(figsize=(6, 5))
         plt.scatter(y_true, y_pred, s=12, alpha=0.7)
         vmin = min(np.min(y_true), np.min(y_pred))
         vmax = max(np.max(y_true), np.max(y_pred))
-        plt.plot([vmin, vmax], [vmin, vmax], color='red', linestyle='--', lw=1)
-        plt.xlabel('Actual')
-        plt.ylabel('Predicted')
-        plt.title('Actual vs Predicted')
+        plt.plot([vmin, vmax], [vmin, vmax], color="red", linestyle="--", lw=1)
+        plt.xlabel("Actual")
+        plt.ylabel("Predicted")
+        plt.title("Actual vs Predicted")
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
-    except Exception:
-        pass
+        logger.info(f"Actual vs predicted saved: {path}")
+    except Exception as e:
+        logger.error(f"Actual vs predicted save failed: {e}")
 
-def plot_feature_distributions(data, target_column: str, output_dir: str | Path) -> None:
-    """
-    Create feature distribution plots.
-    
-    Args:
-        data: Input dataframe
-        target_column: Name of target column
-        output_dir: Directory to save plots
-    """
+
+def plot_feature_distributions(
+    data: pd.DataFrame, target_column: str, output_dir: str | Path
+) -> None:
+    """Create feature distribution plots."""
     try:
         import seaborn as sns
+
         out_path = Path(output_dir)
         out_path.mkdir(parents=True, exist_ok=True)
-        
-        # Get numeric columns
+
         numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
         if target_column in numeric_cols:
             numeric_cols.remove(target_column)
-        
-        # Create distribution plots
-        for col in numeric_cols[:10]:  # Limit to first 10 features
+
+        num_plots = min(len(numeric_cols), 10)
+        for col in numeric_cols[:num_plots]:
+            safe_col_name = safe_filename(col)
+            output_file = out_path / f"dist_{safe_col_name}.png"
+
+            try:
+                output_file_resolved = output_file.resolve()
+                out_path_resolved = out_path.resolve()
+                if not str(output_file_resolved).startswith(str(out_path_resolved)):
+                    logger.error(f"Path traversal detected: {col}")
+                    continue
+            except (OSError, RuntimeError) as e:
+                logger.error(f"Path resolution error for {col}: {e}")
+                continue
+
             plt.figure(figsize=(8, 6))
             sns.histplot(data=data, x=col, hue=target_column, kde=True)
-            plt.title(f'Distribution of {col}')
+            plt.title(f"Distribution: {col}")
             plt.tight_layout()
-            plt.savefig(out_path / f'dist_{col}.png')
+            plt.savefig(output_file)
             plt.close()
-    except Exception:
-        pass
 
-def plot_correlation_matrix(data, output_path: str | Path) -> None:
-    """
-    Create correlation matrix heatmap.
-    
-    Args:
-        data: Input dataframe
-        output_path: Output file path
-    """
+        if len(numeric_cols) > 10:
+            logger.warning(f"Plotted 10/{len(numeric_cols)} features")
+        logger.info(f"Distributions saved: {output_dir}")
+    except Exception as e:
+        logger.error(f"Distribution plots failed: {e}")
+
+
+def plot_correlation_matrix(data: pd.DataFrame, output_path: str | Path) -> None:
+    """Create correlation matrix heatmap."""
     try:
         import seaborn as sns
-        
-        # Get numeric columns only
+
         numeric_data = data.select_dtypes(include=[np.number])
-        
+
         if numeric_data.shape[1] > 1:
             plt.figure(figsize=(10, 8))
             correlation_matrix = numeric_data.corr()
-            sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0,
-                       square=True, fmt='.2f', cbar_kws={'shrink': 0.8})
-            plt.title('Feature Correlation Matrix')
+            sns.heatmap(
+                correlation_matrix,
+                annot=True,
+                cmap="coolwarm",
+                center=0,
+                square=True,
+                fmt=".2f",
+                cbar_kws={"shrink": 0.8},
+            )
+            plt.title("Feature Correlation")
             plt.tight_layout()
             plt.savefig(output_path)
             plt.close()
-    except Exception:
-        pass
+            logger.info(f"Correlation matrix saved: {output_path}")
+        else:
+            logger.warning("Need >1 numeric column for correlation")
+    except Exception as e:
+        logger.error(f"Correlation matrix failed: {e}")
 
-def create_evaluation_dashboard(results: dict[str, Any], output_dir: str | Path) -> None:
-    """
-    Create evaluation dashboard with summary plots.
-    
-    Args:
-        results: Dictionary containing evaluation results
-        output_dir: Directory to save dashboard files
-    """
+
+def create_evaluation_dashboard(
+    results: dict[str, Any], output_dir: str | Path
+) -> None:
+    """Create evaluation dashboard."""
     try:
         out_path = Path(output_dir)
         out_path.mkdir(parents=True, exist_ok=True)
-        
-        # Create summary HTML report
-        html_content = f"""
+
+        html_content = """
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Evo-Learn Model Evaluation</title>
+            <title>Model Evaluation</title>
             <style>
-                body {{ font-family: Arial, sans-serif; margin: 40px; }}
-                .metric {{ background: #f5f5f5; padding: 10px; margin: 5px 0; border-radius: 5px; }}
-                .header {{ color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }}
+                body { font-family: Arial; margin: 40px; }
+                .metric { background: #f5f5f5; padding: 10px; margin: 5px 0; border-radius: 5px; }
+                .header { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
             </style>
         </head>
         <body>
-            <h1 class="header">Model Evaluation Results</h1>
+            <h1 class="header">Model Evaluation</h1>
             <div class="metrics">
         """
-        
-        if 'metrics' in results:
-            for metric, value in results['metrics'].items():
+
+        if "metrics" in results:
+            for metric, value in results["metrics"].items():
                 if isinstance(value, (int, float)):
                     html_content += f'<div class="metric"><strong>{metric.title()}:</strong> {value:.4f}</div>'
-        
+
         html_content += """
             </div>
         </body>
         </html>
         """
-        
-        (out_path / 'evaluation_report.html').write_text(html_content)
-            
-    except Exception:
-        pass
+
+        (out_path / "evaluation_report.html").write_text(html_content)
+        logger.info("Dashboard saved: %s", output_dir)
+
+    except Exception as e:
+        logger.error(f"Dashboard creation failed: {e}")

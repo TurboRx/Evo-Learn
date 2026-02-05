@@ -29,7 +29,7 @@ classifiers = [
 keywords = ["automl", "machine learning", "tpot", "optimization", "scikit-learn", "professional"]
 license = {text = "MIT"}
 dependencies = [
-    "numpy>=2.3.0,<3.0.0",
+    "numpy>=2.0.0,<3.0.0",
     "pandas>=2.2.0",
     "scikit-learn>=1.4.0",
     "matplotlib>=3.8.0",
@@ -44,6 +44,9 @@ dependencies = [
     "stopit>=1.1.0",
     "dill>=0.3.0",
     "PyYAML>=6.0",
+    "tqdm>=4.65.0",
+    "colorama>=0.4.6",
+    "shap>=0.44.0",
 ]
 
 [project.optional-dependencies]

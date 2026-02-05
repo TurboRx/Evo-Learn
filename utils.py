@@ -1,4 +1,5 @@
-"""Utility functions with modern Python 3.14 features."""
+"""Utility functions."""
+
 from __future__ import annotations
 
 import functools
@@ -18,21 +19,15 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-# Configure the logger
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
+
 def timer(unit: str = "seconds", log_level: int = logging.INFO) -> Callable:
-    """
-    Advanced decorator to measure the execution time of a function.
+    """Decorator to measure execution time."""
 
-    Args:
-        unit (str): Unit of time to display ('seconds' or 'milliseconds'). Default is 'seconds'.
-        log_level (int): Logging level for the timing information. Default is logging.INFO.
-
-    Returns:
-        Callable: A decorator for measuring execution time.
-    """
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -40,214 +35,125 @@ def timer(unit: str = "seconds", log_level: int = logging.INFO) -> Callable:
             try:
                 result = func(*args, **kwargs)
                 end_time = time.time()
-                elapsed_time = (end_time - start_time) * 1000 if unit == "milliseconds" else (end_time - start_time)
+                elapsed_time = (
+                    (end_time - start_time) * 1000
+                    if unit == "milliseconds"
+                    else (end_time - start_time)
+                )
                 unit_label = "ms" if unit == "milliseconds" else "s"
-
-                logger.log(log_level, f"Function '{func.__name__}' executed in {elapsed_time:.2f} {unit_label}")
-                
-                # Only log arguments in debug mode to avoid exposing sensitive data in production
+                logger.log(
+                    log_level,
+                    f"'{func.__name__}' executed in {elapsed_time:.2f} {unit_label}",
+                )
                 if log_level == logging.DEBUG:
-                    logger.debug(f"Arguments: args={args}, kwargs={kwargs}")
-
+                    logger.debug(f"Args: {args}, kwargs: {kwargs}")
                 return result
             except Exception as e:
                 end_time = time.time()
-                elapsed_time = (end_time - start_time) * 1000 if unit == "milliseconds" else (end_time - start_time)
+                elapsed_time = (
+                    (end_time - start_time) * 1000
+                    if unit == "milliseconds"
+                    else (end_time - start_time)
+                )
                 unit_label = "ms" if unit == "milliseconds" else "s"
-
-                logger.error(f"Function '{func.__name__}' failed after {elapsed_time:.2f} {unit_label}")
+                logger.error(
+                    f"'{func.__name__}' failed after {elapsed_time:.2f} {unit_label}"
+                )
                 logger.exception(e)
                 raise
+
         return wrapper
+
     return decorator
 
-def get_metrics(y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray | None = None) -> dict[str, float]:
-    """
-    Calculate various classification metrics.
 
-    Args:
-        y_true (np.ndarray): Ground truth labels.
-        y_pred (np.ndarray): Predicted labels.
-        y_proba (np.ndarray, optional): Predicted probabilities for positive class. Defaults to None.
-
-    Returns:
-        Dict[str, float]: Dictionary containing various metrics.
-    """
+def get_metrics(
+    y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray | None = None
+) -> dict[str, float]:
+    """Calculate classification metrics."""
     metrics = {
-        'accuracy': accuracy_score(y_true, y_pred),
-        'precision': precision_score(y_true, y_pred, average='weighted', zero_division=0),
-        'recall': recall_score(y_true, y_pred, average='weighted', zero_division=0),
-        'f1': f1_score(y_true, y_pred, average='weighted', zero_division=0)
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision": precision_score(
+            y_true, y_pred, average="weighted", zero_division=0
+        ),
+        "recall": recall_score(y_true, y_pred, average="weighted", zero_division=0),
+        "f1": f1_score(y_true, y_pred, average="weighted", zero_division=0),
     }
-    
-    # Calculate ROC AUC if probabilities are provided
+
     if y_proba is not None:
-        # Check if binary classification (2 classes)
         unique_classes = np.unique(y_true)
         if len(unique_classes) == 2:
-            metrics['roc_auc'] = roc_auc_score(y_true, y_proba)
-    
+            metrics["roc_auc"] = roc_auc_score(y_true, y_proba)
+
     return metrics
+
 
 def validate_input(data: Any, expected_type: Any, var_name: str) -> None:
-    """
-    Validate input parameters for type and basic properties.
-
-    Args:
-        data (Any): The data to validate.
-        expected_type (Any): The expected type of the data.
-        var_name (str): Name of the variable (for error messages).
-
-    Raises:
-        TypeError: If the data is not of the expected type.
-        ValueError: If the data does not meet validation criteria.
-    """
+    """Validate input type."""
     if not isinstance(data, expected_type):
-        raise TypeError(f"{var_name} must be of type {expected_type.__name__}, got {type(data).__name__}")
-    
-    if expected_type is np.ndarray and data.size == 0:
-        raise ValueError(f"{var_name} cannot be empty")
+        raise TypeError(
+            f"{var_name} must be {expected_type.__name__}, got {type(data).__name__}"
+        )
 
-    if expected_type in (str, list, dict) and not data:
-        raise ValueError(f"{var_name} cannot be empty")
-    
-    if expected_type in (int, float) and data < 0:
-        raise ValueError(f"{var_name} must be non-negative")
 
-def save_model_metadata(model_info: dict[str, Any], path: str | Path) -> None:
-    """
-    Save model metadata to a file.
+def get_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+    """Calculate confusion matrix."""
+    return confusion_matrix(y_true, y_pred)
 
-    Args:
-        model_info (Dict[str, Any]): Dictionary containing model metadata.
-        path (str): Path to save the metadata.
-    """
-    file_path = Path(path)
-    
+
+def save_json(data: dict[str, Any], filepath: str | Path) -> None:
+    """Save dictionary to JSON file."""
     try:
-        # Ensure the directory exists
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Convert numpy types to Python native types using isinstance checks
-        def convert_numpy(obj: Any) -> Any:
-            if isinstance(obj, np.integer):
-                return int(obj)
-            elif isinstance(obj, np.floating):
-                return float(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, dict):
-                return {k: convert_numpy(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [convert_numpy(i) for i in obj]
-            return obj
-        
-        cleaned_info = convert_numpy(model_info)
-        
-        with file_path.open('w') as f:
-            json.dump(cleaned_info, f, indent=4)
-            
-        logger.info(f"Model metadata saved to {path}")
+        path = Path(filepath)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w") as f:
+            json.dump(data, f, indent=2)
+        logger.info(f"Saved to {filepath}")
     except Exception as e:
-        logger.error(f"Failed to save model metadata: {e}")
+        logger.error(f"Save failed: {e}")
         raise
 
-def cross_validate_model(
-    model,
-    X,
-    y,
-    task: str = "classification",
-    cv: int = 5,
-    random_state: int = 42,
-) -> dict[str, list[float]]:
-    """
-    Perform cross-validation on a model and return detailed metrics.
 
-    Args:
-        model: The model to validate.
-        X: Feature data.
-        y: Target data.
-        task (str): Task type ('classification' or 'regression').
-        cv (int): Number of cross-validation folds.
-        random_state (int): Random seed for reproducibility.
+def load_json(filepath: str | Path) -> dict[str, Any]:
+    """Load JSON file to dictionary."""
+    try:
+        path = Path(filepath)
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {filepath}")
+        with path.open("r") as f:
+            data = json.load(f)
+        logger.info(f"Loaded from {filepath}")
+        return data
+    except FileNotFoundError:
+        logger.error(f"File not found: {filepath}")
+        raise
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Load failed: {e}")
+        raise
 
-    Returns:
-        Dict[str, List[float]]: Dictionary of metrics with list of values for each fold.
-    """
-    from sklearn.model_selection import StratifiedKFold, KFold
-    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-    task = task.lower()
-    is_classification = task == "classification"
-
-    if is_classification:
-        metrics: dict[str, list[float]] = {
-            'accuracy': [],
-            'precision': [],
-            'recall': [],
-            'f1': []
-        }
-        if hasattr(model, 'predict_proba'):
-            metrics['roc_auc'] = []
+def format_time(seconds: float) -> str:
+    """Format seconds into human-readable time."""
+    if seconds < 60:
+        return f"{seconds:.2f}s"
+    elif seconds < 3600:
+        minutes = seconds / 60
+        return f"{minutes:.2f}m"
     else:
-        metrics = {
-            'mse': [],
-            'rmse': [],
-            'mae': [],
-            'r2': []
-        }
+        hours = seconds / 3600
+        return f"{hours:.2f}h"
 
-    splitter = None
-    if is_classification:
-        unique_classes, class_counts = np.unique(y, return_counts=True)
-        can_stratify = len(unique_classes) >= 2 and class_counts.min() >= 2
-        if can_stratify:
-            splitter = StratifiedKFold(n_splits=cv, shuffle=True, random_state=random_state)
-        else:
-            logger.warning(
-                "StratifiedKFold requires at least 2 samples per class; "
-                "falling back to KFold."
-            )
-    if splitter is None:
-        splitter = KFold(n_splits=cv, shuffle=True, random_state=random_state)
 
-    for train_idx, test_idx in splitter.split(X, y):
-        X_train = X.iloc[train_idx] if hasattr(X, 'iloc') else X[train_idx]
-        X_test = X.iloc[test_idx] if hasattr(X, 'iloc') else X[test_idx]
-        y_train = y.iloc[train_idx] if hasattr(y, 'iloc') else y[train_idx]
-        y_test = y.iloc[test_idx] if hasattr(y, 'iloc') else y[test_idx]
+def ensure_dir(path: str | Path) -> Path:
+    """Ensure directory exists."""
+    p = Path(path)
+    p.mkdir(parents=True, exist_ok=True)
+    return p
 
-        # Train the model
-        model.fit(X_train, y_train)
 
-        # Get predictions
-        y_pred = model.predict(X_test)
-
-        if is_classification:
-            # Calculate metrics
-            fold_metrics: dict[str, float] = {
-                'accuracy': accuracy_score(y_test, y_pred),
-                'precision': precision_score(y_test, y_pred, average='weighted', zero_division=0),
-                'recall': recall_score(y_test, y_pred, average='weighted', zero_division=0),
-                'f1': f1_score(y_test, y_pred, average='weighted', zero_division=0)
-            }
-
-            # Add ROC AUC if available
-            if 'roc_auc' in metrics and len(np.unique(y)) == 2:
-                y_proba = model.predict_proba(X_test)[:, 1]
-                fold_metrics['roc_auc'] = roc_auc_score(y_test, y_proba)
-        else:
-            mse = mean_squared_error(y_test, y_pred)
-            fold_metrics = {
-                'mse': mse,
-                'rmse': float(np.sqrt(mse)),
-                'mae': mean_absolute_error(y_test, y_pred),
-                'r2': r2_score(y_test, y_pred)
-            }
-
-        # Add metrics to results
-        for metric, value in fold_metrics.items():
-            metrics[metric].append(value)
-
-    
-    return metrics
+def get_size_mb(filepath: str | Path) -> float:
+    """Get file size in MB."""
+    return Path(filepath).stat().st_size / (1024 * 1024)
