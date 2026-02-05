@@ -47,19 +47,21 @@ if os.getenv("EVO_LEARN_SHOW_WARNINGS", "").lower() != "true":
 
 def load_data(data_path: str | Path, max_size_mb: int = 500) -> pd.DataFrame:
     """
-    Load CSV data with comprehensive error handling and validation.
-
-    Args:
-        data_path: Path to the CSV file
-        max_size_mb: Maximum file size in MB (default: 500MB)
-
+    Load a CSV file into a pandas DataFrame with pre-checks and light type coercion.
+    
+    Performs existence and file-size validation, reads the CSV, ensures the file contains at least two columns, and attempts to convert object-typed columns that contain numeric strings to numeric dtype.
+    
+    Parameters:
+        data_path (str | Path): Path to the CSV file to load.
+        max_size_mb (int): Maximum allowed file size in megabytes; a ValueError is raised if the file exceeds this size.
+    
     Returns:
-        pd.DataFrame: Loaded and cleaned data
-
+        pd.DataFrame: The loaded DataFrame with attempted numeric coercions applied to object columns.
+    
     Raises:
-        FileNotFoundError: If the file doesn't exist
-        pd.errors.ParserError: If CSV parsing fails
-        ValueError: If data is empty, invalid, or too large
+        FileNotFoundError: If the file at data_path does not exist.
+        ValueError: If the file is larger than max_size_mb, the CSV is empty, has fewer than two columns, or CSV parsing fails (parsing errors are reported as ValueError).
+        Exception: Re-raises unexpected exceptions encountered during loading.
     """
     try:
         path = Path(data_path)
@@ -133,21 +135,21 @@ def split_data(
     task: str = "classification",
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     """
-    Split data into train/test sets with stratification for classification.
-
-    Args:
-        data: Input dataframe
-        target_column: Name of target column
-        test_size: Fraction of data to use for testing
-        random_state: Random seed for reproducibility
-        task: 'classification' or 'regression'
-
+    Split a dataframe into train and test sets, applying stratified sampling for classification when feasible.
+    
+    Parameters:
+        data (pd.DataFrame): Input dataframe containing features and the target column.
+        target_column (str): Name of the target column to separate from features.
+        test_size (float): Proportion of the dataset to include in the test split.
+        random_state (int): Seed for random operations to ensure reproducibility.
+        task (str): Either "classification" or "regression"; determines whether stratification is considered.
+    
     Returns:
-        Tuple of (X_train, X_test, y_train, y_test)
-
+        tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]: (X_train, X_test, y_train, y_test).
+    
     Raises:
-        KeyError: If target column not found
-        ValueError: If insufficient data for splitting
+        KeyError: If the specified target column is not present in the dataframe.
+        ValueError: If the dataset is too small to perform a train/test split or if sklearn raises a splitting error.
     """
     if target_column not in data.columns:
         raise KeyError(
@@ -199,13 +201,16 @@ def split_data(
 
 def _load_config(config_path: str | None) -> dict[str, Any]:
     """
-    Load configuration from YAML file with error handling.
-
-    Args:
-        config_path: Path to YAML config file
-
+    Load YAML configuration from a file and return its contents as a dictionary.
+    
+    If `config_path` is None, the file does not exist, or the file contains invalid YAML,
+    an empty dictionary is returned and a warning is logged.
+    
+    Parameters:
+        config_path (str | None): Path to a YAML config file, or None to use defaults.
+    
     Returns:
-        Dict containing configuration parameters
+        dict[str, Any]: Parsed configuration mapping, or an empty dict when no valid config is available.
     """
     if not config_path:
         return {}
@@ -234,15 +239,20 @@ def validate_data_for_training(
     data: pd.DataFrame, target_column: str, task: str
 ) -> None:
     """
-    Validate data before training to catch common issues early.
-
-    Args:
-        data: Input dataframe
-        target_column: Name of target column
-        task: 'classification' or 'regression'
-
+    Validate a dataset for training by checking the target column and flagging common data issues.
+    
+    Checks performed:
+    - If the target column exists, ensures it contains no NaN values and (for classification) at least two classes.
+    - For classification, computes class distribution and logs a warning for severe imbalance.
+    - Detects columns with all NaN values and constant (single-valued) features and logs warnings that they will likely be dropped during preprocessing.
+    
+    Parameters:
+        data (pd.DataFrame): Input dataset containing features and the target column.
+        target_column (str): Name of the target column to validate.
+        task (str): Task type; must be either 'classification' or 'regression'.
+    
     Raises:
-        ValueError: If data validation fails
+        ValueError: If the target column contains NaN values, or if a classification target has fewer than two unique classes.
     """
     # Check for NaN in target column
     if target_column in data.columns:
@@ -310,15 +320,15 @@ def _compute_classification_metrics(
     y_proba: np.ndarray | None = None,
 ) -> dict[str, float]:
     """
-    Compute comprehensive classification metrics.
-
-    Args:
-        y_true: True labels
-        y_pred: Predicted labels
-        y_proba: Predicted probabilities (optional)
-
+    Compute standard classification metrics from true labels and predictions.
+    
+    Parameters:
+        y_true: True class labels.
+        y_pred: Predicted class labels.
+        y_proba: Predicted probabilities. For binary tasks this may be a 1D array of probabilities for the positive class or a 2D array of class probability estimates; when provided and the problem is binary, ROC AUC will be attempted.
+    
     Returns:
-        Dict containing computed metrics
+        dict[str, float]: Mapping of metric names to float values. Always includes `accuracy`, `precision`, `recall`, and `f1_score`. Includes `roc_auc` when `y_proba` is provided and ROC AUC can be computed for a binary classification problem.
     """
     try:
         metrics = {
@@ -356,14 +366,15 @@ def _compute_regression_metrics(
     y_true: np.ndarray | pd.Series, y_pred: np.ndarray | pd.Series
 ) -> dict[str, float]:
     """
-    Compute comprehensive regression metrics.
-
-    Args:
-        y_true: True values
-        y_pred: Predicted values
-
+    Compute standard regression evaluation metrics for true and predicted values.
+    
     Returns:
-        Dict containing computed metrics
+        A dict with:
+            - `mse`: Mean squared error as a float.
+            - `rmse`: Root mean squared error as a float.
+            - `mae`: Mean absolute error as a float.
+            - `r2`: R² (coefficient of determination) as a float.
+        On internal failure, returns `mse`, `rmse`, and `mae` as `inf` and `r2` as `-inf`.
     """
     try:
         mse = mean_squared_error(y_true, y_pred)
@@ -399,29 +410,44 @@ def run_automl(
     always_baseline: bool = False,
 ) -> dict[str, Any]:
     """
-    Run automated machine learning with TPOT or baseline models.
-
-    Args:
-        data_path: Path to CSV data file
-        target_column: Name of target column
-        task: Either 'classification' or 'regression'
-        generations: Number of TPOT generations
-        population_size: TPOT population size
-        test_size: Fraction for test split
-        random_state: Random seed
-        output_dir: Directory for saving models
-        max_time_mins: Max time for TPOT optimization
-        max_eval_time_mins: Max time per model evaluation
-        n_jobs: Number of CPU cores to use for TPOT (-1 for all)
-        config_path: Path to YAML config file
-        always_baseline: If True, skip TPOT and use baseline
-
+    Run an automated ML workflow on a CSV dataset using TPOT or a baseline model.
+    
+    Loads and validates data, builds a preprocessing pipeline, splits data, trains either a TPOT-optimized pipeline (when available) or a baseline estimator, evaluates on a test set, saves the fitted pipeline and metadata, and returns a result summary.
+    
+    Parameters:
+        data_path (str | Path): Path to the input CSV file.
+        target_column (str): Name of the target column in the dataset.
+        task (str): "classification" or "regression".
+        generations (int): Number of TPOT generations to run.
+        population_size (int): TPOT population size.
+        test_size (float): Fraction of data reserved for testing (must be >0 and <1).
+        random_state (int): Seed for reproducibility.
+        output_dir (str | Path): Directory where models, artifacts, and metadata are saved.
+        max_time_mins (int | None): Optional overall time limit (minutes) for TPOT optimization.
+        max_eval_time_mins (int | None): Optional per-model evaluation time limit (minutes) for TPOT.
+        n_jobs (int): Number of CPU cores to use by TPOT (-1 uses all available).
+        config_path (str | None): Optional path to a YAML configuration file to override defaults.
+        always_baseline (bool): If True, skip TPOT and train only the baseline model.
+    
     Returns:
-        Dict containing model info, metrics, and paths
-
+        dict: Result dictionary containing model metadata and evaluation, including keys such as:
+            - "model_name": generated model identifier
+            - "task": task type ("classification" or "regression")
+            - "model_path": filesystem path to the serialized model
+            - "pipeline_path": path to exported TPOT Python pipeline (if available)
+            - "metrics": evaluation metrics (classification or regression)
+            - "feature_names": list of feature names used
+            - "target_column": provided target column name
+            - "training_samples", "testing_samples": sample counts
+            - "timestamp": run timestamp
+            - "tpot_config": TPOT run configuration (when applicable)
+            - "preprocessing": preprocessing settings applied
+            - "model_type": "tpot" or baseline tag
+            - optionally "feature_importance_plot": path to a saved feature importance image
+    
     Raises:
-        ValueError: For invalid parameters
-        Exception: For various processing errors
+        ValueError: For invalid parameter values (e.g., unsupported task or invalid test_size).
+        Exception: For other failures during directory creation, data loading, preprocessing, training, or serialization.
     """
     # Load and merge configuration
     cfg = _load_config(config_path)
@@ -477,7 +503,29 @@ def run_automl(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def _fit_and_package(final_estimator: Any, model_tag: str) -> dict[str, Any]:
-        """Fit model with preprocessing and package results."""
+        """
+        Fit a preprocessing-wrapped estimator on the training set, evaluate it on the test set, serialize the fitted pipeline, and write accompanying metadata to disk.
+        
+        Returns:
+            result (dict[str, Any]): Metadata and artefacts for the fitted model, including:
+                - "model_name": generated model identifier
+                - "task": task name (e.g., "classification" or "regression")
+                - "model_path": filesystem path to the serialized pipeline file
+                - "pipeline_path": optional path to exported pipeline script (or None)
+                - "metrics": evaluation metrics computed on the test set
+                - "feature_names": list of feature names used (or None)
+                - "target_column": name of the target column
+                - "training_samples": number of training samples (or None)
+                - "testing_samples": number of testing samples (or None)
+                - "timestamp": timestamp string used in naming
+                - "tpot_config": TPOT configuration payload if applicable (or None)
+                - "preprocessing": dict describing preprocessing settings
+                - "model_type": tag identifying the model type used
+        
+        Side effects:
+            - Writes a serialized model file to disk.
+            - Writes a JSON metadata file alongside the model.
+        """
         try:
             model = Pipeline(
                 steps=[("preprocess", preprocessor), ("est", final_estimator)]
@@ -704,16 +752,13 @@ def run_automl(
 def load_model(model_path: str | Path) -> Any:
     """
     Load a saved model pipeline from disk.
-
-    Args:
-        model_path: Path to the saved model file
-
+    
     Returns:
-        Loaded model pipeline
-
+        The deserialized model pipeline.
+    
     Raises:
-        FileNotFoundError: If model file doesn't exist
-        Exception: For other loading errors
+        FileNotFoundError: If the model file does not exist.
+        Exception: For other deserialization or I/O errors.
     """
     try:
         path = Path(model_path)
@@ -738,18 +783,14 @@ def predict(
     model: Any, data: pd.DataFrame | str | Path, target_column: str | None = None
 ) -> np.ndarray:
     """
-    Make predictions with a saved pipeline.
-
-    Args:
-        model: Loaded model pipeline
-        data: Input data (DataFrame or path to CSV)
-        target_column: Name of target column to exclude (if present)
-
+    Produce predictions from a fitted pipeline on the provided dataset.
+    
+    Parameters:
+        data (pd.DataFrame | str | Path): Feature data as a DataFrame or a path to a CSV; if a path is given, the file will be loaded.
+        target_column (str | None): Name of the target column to exclude from features if present.
+    
     Returns:
-        Array of predictions
-
-    Raises:
-        Exception: For prediction errors
+        np.ndarray: Array of model predictions.
     """
     try:
         if isinstance(data, (str, Path)):

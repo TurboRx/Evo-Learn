@@ -21,7 +21,11 @@ import numpy as np
 
 
 def example_1_valid_data():
-    """Example 1: Valid data - training succeeds."""
+    """
+    Create a small valid binary classification dataset, save it to /tmp/valid_data.csv, run core.run_automl with a short configuration, print the training outcome, and remove the temporary file.
+    
+    The dataset contains three numeric features and a binary `target`. The function prints the dataset shape and class distribution, attempts training (expected to succeed for this example), reports accuracy on success or the exception on failure, and deletes the CSV afterwards.
+    """
     print("\n" + "=" * 60)
     print("Example 1: Valid Classification Data")
     print("=" * 60)
@@ -63,7 +67,11 @@ def example_1_valid_data():
 
 
 def example_2_nan_in_target():
-    """Example 2: NaN in target - validation catches it."""
+    """
+    Demonstrates that the training validation detects NaN values in the target column.
+    
+    Creates a toy classification dataset containing NaN in the `target` column, saves it to `/tmp/nan_target.csv`, invokes `run_automl` and expects a `ValueError` from validation, prints a short confirmation of the caught error, and removes the temporary file.
+    """
     print("\n" + "=" * 60)
     print("Example 2: NaN in Target Column (Should Fail Validation)")
     print("=" * 60)
@@ -103,7 +111,11 @@ def example_2_nan_in_target():
 
 
 def example_3_single_class():
-    """Example 3: Single class - validation catches it."""
+    """
+    Demonstrates that training validation rejects classification datasets whose target contains only a single class.
+    
+    Creates a toy dataset with a single-class target, writes it to /tmp/single_class.csv, calls core.run_automl for a classification task and expects a ValueError indicating invalid target class diversity, and removes the temporary file. Prints progress and a short snippet of the validation error when caught.
+    """
     print("\n" + "=" * 60)
     print("Example 3: Single Class in Classification (Should Fail)")
     print("=" * 60)
@@ -187,7 +199,11 @@ def example_4_class_imbalance_warning():
 
 
 def example_5_model_serialization():
-    """Example 5: Demonstrate secure model serialization with joblib."""
+    """
+    Demonstrates serializing and deserializing a scikit-learn LogisticRegression model using joblib.
+    
+    Saves a small LogisticRegression instance to /tmp/test_model.pkl with compression, loads it back to verify that coefficients match, and removes the temporary file when finished.
+    """
     print("\n" + "=" * 60)
     print("Example 5: Secure Model Serialization (joblib)")
     print("=" * 60)
