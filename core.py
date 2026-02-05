@@ -48,16 +48,16 @@ if os.getenv("EVO_LEARN_SHOW_WARNINGS", "").lower() != "true":
 def load_data(data_path: str | Path, max_size_mb: int = 500) -> pd.DataFrame:
     """
     Load a CSV file into a pandas DataFrame with pre-checks and light type coercion.
-    
+
     Performs existence and file-size validation, reads the CSV, ensures the file contains at least two columns, and attempts to convert object-typed columns that contain numeric strings to numeric dtype.
-    
+
     Parameters:
         data_path (str | Path): Path to the CSV file to load.
         max_size_mb (int): Maximum allowed file size in megabytes; a ValueError is raised if the file exceeds this size.
-    
+
     Returns:
         pd.DataFrame: The loaded DataFrame with attempted numeric coercions applied to object columns.
-    
+
     Raises:
         FileNotFoundError: If the file at data_path does not exist.
         ValueError: If the file is larger than max_size_mb, the CSV is empty, has fewer than two columns, or CSV parsing fails (parsing errors are reported as ValueError).
@@ -136,17 +136,17 @@ def split_data(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     """
     Split a dataframe into train and test sets, applying stratified sampling for classification when feasible.
-    
+
     Parameters:
         data (pd.DataFrame): Input dataframe containing features and the target column.
         target_column (str): Name of the target column to separate from features.
         test_size (float): Proportion of the dataset to include in the test split.
         random_state (int): Seed for random operations to ensure reproducibility.
         task (str): Either "classification" or "regression"; determines whether stratification is considered.
-    
+
     Returns:
         tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]: (X_train, X_test, y_train, y_test).
-    
+
     Raises:
         KeyError: If the specified target column is not present in the dataframe.
         ValueError: If the dataset is too small to perform a train/test split or if sklearn raises a splitting error.
@@ -202,13 +202,13 @@ def split_data(
 def _load_config(config_path: str | None) -> dict[str, Any]:
     """
     Load YAML configuration from a file and return its contents as a dictionary.
-    
+
     If `config_path` is None, the file does not exist, or the file contains invalid YAML,
     an empty dictionary is returned and a warning is logged.
-    
+
     Parameters:
         config_path (str | None): Path to a YAML config file, or None to use defaults.
-    
+
     Returns:
         dict[str, Any]: Parsed configuration mapping, or an empty dict when no valid config is available.
     """
@@ -240,54 +240,59 @@ def validate_data_for_training(
 ) -> None:
     """
     Validate a dataset for training by checking the target column and flagging common data issues.
-    
+
     Checks performed:
     - If the target column exists, ensures it contains no NaN values and (for classification) at least two classes.
     - For classification, computes class distribution and logs a warning for severe imbalance.
     - Detects columns with all NaN values and constant (single-valued) features and logs warnings that they will likely be dropped during preprocessing.
-    
+
     Parameters:
         data (pd.DataFrame): Input dataset containing features and the target column.
         target_column (str): Name of the target column to validate.
         task (str): Task type; must be either 'classification' or 'regression'.
-    
+
     Raises:
-        ValueError: If the target column contains NaN values, or if a classification target has fewer than two unique classes.
+        ValueError: If the target column is missing, contains NaN values, or if a classification target has fewer than two unique classes.
     """
+    # Check if target column exists (fail fast)
+    if target_column not in data.columns:
+        available_cols = list(data.columns)
+        raise ValueError(
+            f"Target column '{target_column}' not found in data. "
+            f"Available columns: {available_cols[:10]}{'...' if len(available_cols) > 10 else ''}"
+        )
+
     # Check for NaN in target column
-    if target_column in data.columns:
-        nan_count = data[target_column].isna().sum()
-        if nan_count > 0:
+    nan_count = data[target_column].isna().sum()
+    if nan_count > 0:
+        raise ValueError(
+            f"Target column '{target_column}' contains {nan_count} NaN values. "
+            f"Please remove or impute these values before training."
+        )
+
+    # Check for single class in classification
+    if task.lower() == "classification":
+        unique_classes = data[target_column].nunique()
+        if unique_classes < 2:
             raise ValueError(
-                f"Target column '{target_column}' contains {nan_count} NaN values. "
-                f"Please remove or impute these values before training."
+                f"Classification requires at least 2 classes, but target column '{target_column}' "
+                f"has only {unique_classes} unique value(s): {data[target_column].unique()}"
             )
 
-        # Check for single class in classification
-        if task.lower() == "classification":
-            unique_classes = data[target_column].nunique()
-            if unique_classes < 2:
-                raise ValueError(
-                    f"Classification requires at least 2 classes, but target column '{target_column}' "
-                    f"has only {unique_classes} unique value(s): {data[target_column].unique()}"
-                )
+        # Warn about class imbalance
+        class_counts = data[target_column].value_counts()
+        min_class_count = class_counts.min()
+        max_class_count = class_counts.max()
+        imbalance_ratio = (
+            max_class_count / min_class_count if min_class_count > 0 else float("inf")
+        )
 
-            # Warn about class imbalance
-            class_counts = data[target_column].value_counts()
-            min_class_count = class_counts.min()
-            max_class_count = class_counts.max()
-            imbalance_ratio = (
-                max_class_count / min_class_count
-                if min_class_count > 0
-                else float("inf")
+        if imbalance_ratio > 10:
+            logger.warning(
+                f"Severe class imbalance detected (ratio: {imbalance_ratio:.1f}:1). "
+                f"Consider using techniques like SMOTE or class weights."
             )
-
-            if imbalance_ratio > 10:
-                logger.warning(
-                    f"Severe class imbalance detected (ratio: {imbalance_ratio:.1f}:1). "
-                    f"Consider using techniques like SMOTE or class weights."
-                )
-                logger.warning(f"Class distribution: {class_counts.to_dict()}")
+            logger.warning(f"Class distribution: {class_counts.to_dict()}")
 
     # Check for all-NaN features
     all_nan_cols = data.columns[data.isna().all()].tolist()
@@ -321,12 +326,12 @@ def _compute_classification_metrics(
 ) -> dict[str, float]:
     """
     Compute standard classification metrics from true labels and predictions.
-    
+
     Parameters:
         y_true: True class labels.
         y_pred: Predicted class labels.
         y_proba: Predicted probabilities. For binary tasks this may be a 1D array of probabilities for the positive class or a 2D array of class probability estimates; when provided and the problem is binary, ROC AUC will be attempted.
-    
+
     Returns:
         dict[str, float]: Mapping of metric names to float values. Always includes `accuracy`, `precision`, `recall`, and `f1_score`. Includes `roc_auc` when `y_proba` is provided and ROC AUC can be computed for a binary classification problem.
     """
@@ -367,7 +372,7 @@ def _compute_regression_metrics(
 ) -> dict[str, float]:
     """
     Compute standard regression evaluation metrics for true and predicted values.
-    
+
     Returns:
         A dict with:
             - `mse`: Mean squared error as a float.
@@ -411,9 +416,9 @@ def run_automl(
 ) -> dict[str, Any]:
     """
     Run an automated ML workflow on a CSV dataset using TPOT or a baseline model.
-    
+
     Loads and validates data, builds a preprocessing pipeline, splits data, trains either a TPOT-optimized pipeline (when available) or a baseline estimator, evaluates on a test set, saves the fitted pipeline and metadata, and returns a result summary.
-    
+
     Parameters:
         data_path (str | Path): Path to the input CSV file.
         target_column (str): Name of the target column in the dataset.
@@ -428,7 +433,7 @@ def run_automl(
         n_jobs (int): Number of CPU cores to use by TPOT (-1 uses all available).
         config_path (str | None): Optional path to a YAML configuration file to override defaults.
         always_baseline (bool): If True, skip TPOT and train only the baseline model.
-    
+
     Returns:
         dict: Result dictionary containing model metadata and evaluation, including keys such as:
             - "model_name": generated model identifier
@@ -444,7 +449,7 @@ def run_automl(
             - "preprocessing": preprocessing settings applied
             - "model_type": "tpot" or baseline tag
             - optionally "feature_importance_plot": path to a saved feature importance image
-    
+
     Raises:
         ValueError: For invalid parameter values (e.g., unsupported task or invalid test_size).
         Exception: For other failures during directory creation, data loading, preprocessing, training, or serialization.
@@ -505,7 +510,7 @@ def run_automl(
     def _fit_and_package(final_estimator: Any, model_tag: str) -> dict[str, Any]:
         """
         Fit a preprocessing-wrapped estimator on the training set, evaluate it on the test set, serialize the fitted pipeline, and write accompanying metadata to disk.
-        
+
         Returns:
             result (dict[str, Any]): Metadata and artefacts for the fitted model, including:
                 - "model_name": generated model identifier
@@ -521,7 +526,7 @@ def run_automl(
                 - "tpot_config": TPOT configuration payload if applicable (or None)
                 - "preprocessing": dict describing preprocessing settings
                 - "model_type": tag identifying the model type used
-        
+
         Side effects:
             - Writes a serialized model file to disk.
             - Writes a JSON metadata file alongside the model.
@@ -752,10 +757,10 @@ def run_automl(
 def load_model(model_path: str | Path) -> Any:
     """
     Load a saved model pipeline from disk.
-    
+
     Returns:
         The deserialized model pipeline.
-    
+
     Raises:
         FileNotFoundError: If the model file does not exist.
         Exception: For other deserialization or I/O errors.
@@ -765,8 +770,19 @@ def load_model(model_path: str | Path) -> Any:
         if not path.exists():
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
-        # Use joblib for safer deserialization
-        model = joblib.load(path)
+        # Try joblib first (safer deserialization)
+        try:
+            model = joblib.load(path)
+        except Exception as joblib_error:
+            # Fallback to pickle for backward compatibility with older model files
+            logger.warning(
+                f"Failed to load model with joblib (error: {joblib_error}). "
+                f"Attempting pickle.load for backward compatibility..."
+            )
+            import pickle
+
+            with path.open("rb") as f:
+                model = pickle.load(f)
 
         logger.info(f"Model loaded successfully from: {model_path}")
         return model
@@ -784,11 +800,11 @@ def predict(
 ) -> np.ndarray:
     """
     Produce predictions from a fitted pipeline on the provided dataset.
-    
+
     Parameters:
         data (pd.DataFrame | str | Path): Feature data as a DataFrame or a path to a CSV; if a path is given, the file will be loaded.
         target_column (str | None): Name of the target column to exclude from features if present.
-    
+
     Returns:
         np.ndarray: Array of model predictions.
     """

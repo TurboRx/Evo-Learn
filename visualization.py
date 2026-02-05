@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -13,13 +14,40 @@ import pandas as pd
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
+def safe_filename(filename: str, max_length: int = 200) -> str:
+    """
+    Sanitize a filename to prevent path traversal and invalid characters.
+
+    Args:
+        filename: The filename to sanitize
+        max_length: Maximum length for the filename
+
+    Returns:
+        Sanitized filename safe for use in filesystem
+    """
+    # Remove or replace path separators and other dangerous characters
+    sanitized = re.sub(r'[/\\:*?"<>|]', "_", str(filename))
+    # Collapse multiple whitespace/underscores
+    sanitized = re.sub(r"[\s_]+", "_", sanitized)
+    # Remove leading/trailing dots and whitespace
+    sanitized = sanitized.strip(". ")
+    # Limit length
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length]
+    # Ensure it's not empty after sanitization
+    if not sanitized:
+        sanitized = "unnamed"
+    return sanitized
+
+
 # Professional visualization functions
 
 
 def save_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> None:
     """
     Save a Receiver Operating Characteristic (ROC) curve plot with AUC annotation to the given file path.
-    
+
     Parameters:
         y_true (np.ndarray): True binary labels (0 or 1).
         y_proba (np.ndarray): Predicted probabilities or scores for the positive class.
@@ -52,7 +80,7 @@ def save_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) ->
 def save_pr_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> None:
     """
     Save a precision-recall curve plot for binary classification to a file.
-    
+
     Parameters:
         y_true (np.ndarray): True binary labels.
         y_proba (np.ndarray): Predicted probabilities or scores for the positive class.
@@ -84,9 +112,9 @@ def save_pr_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> 
 def save_residuals(y_true: np.ndarray, y_pred: np.ndarray, path: str | Path) -> None:
     """
     Create and save a residuals plot comparing predicted values to residuals.
-    
+
     Residuals are computed as y_true - y_pred and plotted against predicted values; the figure is saved to the provided path.
-    
+
     Parameters:
         y_true (np.ndarray | array-like): True target values.
         y_pred (np.ndarray | array-like): Predicted target values.
@@ -113,7 +141,7 @@ def save_actual_vs_pred(
 ) -> None:
     """
     Create and save a scatter plot comparing actual values to predicted values with a 1:1 reference line.
-    
+
     Parameters:
         y_true (np.ndarray): Array of true target values.
         y_pred (np.ndarray): Array of predicted values corresponding to `y_true`.
@@ -141,9 +169,9 @@ def plot_feature_distributions(
 ) -> None:
     """
     Generate and save distribution plots for up to 10 numeric features, segmented by the specified target column.
-    
+
     Each plot is saved as a PNG file named `dist_<feature>.png` in `output_dir`. If more than 10 numeric features exist, only the first 10 are plotted and a warning is logged.
-    
+
     Parameters:
         data (pd.DataFrame): DataFrame containing features and the target column.
         target_column (str): Name of the column used to split/colour distributions (hue).
@@ -163,11 +191,26 @@ def plot_feature_distributions(
         # Create distribution plots
         num_plots = min(len(numeric_cols), 10)  # Limit to first 10 features
         for col in numeric_cols[:num_plots]:
+            # Sanitize the column name for safe filename
+            safe_col_name = safe_filename(col)
+            output_file = out_path / f"dist_{safe_col_name}.png"
+
+            # Verify the resolved path is still within output directory
+            try:
+                output_file_resolved = output_file.resolve()
+                out_path_resolved = out_path.resolve()
+                if not str(output_file_resolved).startswith(str(out_path_resolved)):
+                    logger.error(f"Path traversal attempt detected for column: {col}")
+                    continue
+            except (OSError, RuntimeError) as e:
+                logger.error(f"Error resolving path for column {col}: {e}")
+                continue
+
             plt.figure(figsize=(8, 6))
             sns.histplot(data=data, x=col, hue=target_column, kde=True)
             plt.title(f"Distribution of {col}")
             plt.tight_layout()
-            plt.savefig(out_path / f"dist_{col}.png")
+            plt.savefig(output_file)
             plt.close()
 
         if len(numeric_cols) > 10:
@@ -182,11 +225,11 @@ def plot_feature_distributions(
 def plot_correlation_matrix(data: pd.DataFrame, output_path: str | Path) -> None:
     """
     Generate and save a heatmap of the correlation matrix for the DataFrame's numeric columns.
-    
+
     Parameters:
         data (pd.DataFrame): Input data containing features to correlate.
         output_path (str | Path): File path where the heatmap image will be saved.
-    
+
     Notes:
         If the DataFrame contains fewer than two numeric columns, no heatmap is created and a warning is logged.
     """
@@ -224,10 +267,10 @@ def create_evaluation_dashboard(
 ) -> None:
     """
     Create a simple HTML evaluation dashboard summarizing numeric metrics and save it to disk.
-    
+
     The function ensures the output directory exists, formats numeric entries found under the "metrics" key
     to four decimal places, and writes an "evaluation_report.html" file into the provided directory.
-    
+
     Parameters:
         results (dict[str, Any]): Evaluation data; if a "metrics" key is present, numeric metric values will be rendered.
         output_dir (str | Path): Directory where "evaluation_report.html" will be written.

@@ -1,4 +1,5 @@
 """Tests for the new data validation functionality."""
+
 import pytest
 import pandas as pd
 import numpy as np
@@ -10,174 +11,199 @@ from pathlib import Path
 class TestDataValidation:
     """Test suite for validate_data_for_training function."""
 
+    def test_missing_target_column_raises_error(self):
+        """Test that missing target column raises ValueError."""
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5],
+                "feature2": [7, 8, 9, 10, 11],
+                "other_column": [0, 1, 0, 1, 0],
+            }
+        )
+
+        with pytest.raises(ValueError, match=r"Target column.*not found"):
+            validate_data_for_training(data, "target", "classification")
+
     def test_valid_classification_data(self):
         """Test that valid classification data passes validation."""
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5, 6],
-            'feature2': [7, 8, 9, 10, 11, 12],
-            'target': [0, 1, 0, 1, 0, 1]
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5, 6],
+                "feature2": [7, 8, 9, 10, 11, 12],
+                "target": [0, 1, 0, 1, 0, 1],
+            }
+        )
 
         # Should not raise any exception
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
     def test_valid_regression_data(self):
         """Test that valid regression data passes validation."""
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'feature2': [7, 8, 9, 10, 11],
-            'target': [1.5, 2.3, 3.1, 4.2, 5.8]
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5],
+                "feature2": [7, 8, 9, 10, 11],
+                "target": [1.5, 2.3, 3.1, 4.2, 5.8],
+            }
+        )
 
         # Should not raise any exception
-        validate_data_for_training(data, 'target', 'regression')
+        validate_data_for_training(data, "target", "regression")
 
     def test_nan_in_target_raises_error(self):
         """Test that NaN in target column raises ValueError."""
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'feature2': [7, 8, 9, 10, 11],
-            'target': [0, 1, np.nan, 1, 0]
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5],
+                "feature2": [7, 8, 9, 10, 11],
+                "target": [0, 1, np.nan, 1, 0],
+            }
+        )
 
-        with pytest.raises(ValueError, match="contains.*NaN"):
-            validate_data_for_training(data, 'target', 'classification')
+        with pytest.raises(ValueError, match=r"contains.*NaN"):
+            validate_data_for_training(data, "target", "classification")
 
     def test_multiple_nans_in_target(self):
         """Test error message includes count of NaN values."""
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5, 6, 7, 8],
-            'target': [0, 1, np.nan, 1, 0, np.nan, np.nan, 1]
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5, 6, 7, 8],
+                "target": [0, 1, np.nan, 1, 0, np.nan, np.nan, 1],
+            }
+        )
 
         with pytest.raises(ValueError, match="contains 3 NaN"):
-            validate_data_for_training(data, 'target', 'classification')
+            validate_data_for_training(data, "target", "classification")
 
     def test_single_class_raises_error(self):
         """Test that single class in classification raises ValueError."""
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'feature2': [7, 8, 9, 10, 11],
-            'target': [0, 0, 0, 0, 0]  # All same class
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5],
+                "feature2": [7, 8, 9, 10, 11],
+                "target": [0, 0, 0, 0, 0],  # All same class
+            }
+        )
 
         with pytest.raises(ValueError, match="at least 2 classes"):
-            validate_data_for_training(data, 'target', 'classification')
+            validate_data_for_training(data, "target", "classification")
 
     def test_class_imbalance_warning(self, caplog):
         """Test that severe class imbalance generates warning."""
         # Create imbalanced dataset (ratio > 10:1)
-        data = pd.DataFrame({
-            'feature1': list(range(100)),
-            'target': [0] * 95 + [1] * 5  # 19:1 ratio
-        })
+        data = pd.DataFrame(
+            {"feature1": list(range(100)), "target": [0] * 95 + [1] * 5}  # 19:1 ratio
+        )
 
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
         # Check that warning was logged
-        assert any('class imbalance' in record.message.lower()
-                   for record in caplog.records)
+        assert any(
+            "class imbalance" in record.message.lower() for record in caplog.records
+        )
 
     def test_class_imbalance_boundary(self, caplog):
         """Test class imbalance warning at the boundary (10:1 ratio)."""
         # Exactly 10:1 ratio - should warn
-        data = pd.DataFrame({
-            'feature1': list(range(110)),
-            'target': [0] * 100 + [1] * 10  # 10:1 ratio
-        })
+        data = pd.DataFrame(
+            {"feature1": list(range(110)), "target": [0] * 100 + [1] * 10}  # 10:1 ratio
+        )
 
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
         # Just under the threshold - should not warn
-        data_balanced = pd.DataFrame({
-            'feature1': list(range(100)),
-            'target': [0] * 90 + [1] * 10  # 9:1 ratio
-        })
+        data_balanced = pd.DataFrame(
+            {"feature1": list(range(100)), "target": [0] * 90 + [1] * 10}  # 9:1 ratio
+        )
 
         caplog.clear()
-        validate_data_for_training(data_balanced, 'target', 'classification')
-        assert not any('class imbalance' in record.message.lower()
-                       for record in caplog.records)
+        validate_data_for_training(data_balanced, "target", "classification")
+        assert not any(
+            "class imbalance" in record.message.lower() for record in caplog.records
+        )
 
     def test_all_nan_features_warning(self, caplog):
         """Test that all-NaN features generate warning."""
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'feature2': [np.nan] * 5,  # All NaN
-            'target': [0, 1, 0, 1, 0]
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5],
+                "feature2": [np.nan] * 5,  # All NaN
+                "target": [0, 1, 0, 1, 0],
+            }
+        )
 
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
         # Check that warning was logged
-        assert any('all NaN' in record.message
-                   for record in caplog.records)
+        assert any("all NaN" in record.message for record in caplog.records)
 
     def test_multiple_all_nan_features(self, caplog):
         """Test warning shows number of all-NaN features."""
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'feature2': [np.nan] * 5,  # All NaN
-            'feature3': [np.nan] * 5,  # All NaN
-            'feature4': [np.nan] * 5,  # All NaN
-            'target': [0, 1, 0, 1, 0]
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5],
+                "feature2": [np.nan] * 5,  # All NaN
+                "feature3": [np.nan] * 5,  # All NaN
+                "feature4": [np.nan] * 5,  # All NaN
+                "target": [0, 1, 0, 1, 0],
+            }
+        )
 
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
         # Check that warning includes count
-        assert any('3 columns' in record.message
-                   for record in caplog.records)
+        assert any("3 columns" in record.message for record in caplog.records)
 
     def test_constant_features_warning(self, caplog):
         """Test that constant features generate warning."""
-        data = pd.DataFrame({
-            'feature1': [5, 5, 5, 5, 5],  # Constant
-            'feature2': [1, 2, 3, 4, 5],  # Variable
-            'target': [0, 1, 0, 1, 0]
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [5, 5, 5, 5, 5],  # Constant
+                "feature2": [1, 2, 3, 4, 5],  # Variable
+                "target": [0, 1, 0, 1, 0],
+            }
+        )
 
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
         # Check that warning was logged
-        assert any('constant' in record.message.lower()
-                   for record in caplog.records)
+        assert any("constant" in record.message.lower() for record in caplog.records)
 
     def test_minimum_classes_for_classification(self):
         """Test that classification requires at least 2 classes."""
         # Binary classification - should pass
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4],
-            'target': [0, 1, 0, 1]
-        })
-        validate_data_for_training(data, 'target', 'classification')
+        data = pd.DataFrame({"feature1": [1, 2, 3, 4], "target": [0, 1, 0, 1]})
+        validate_data_for_training(data, "target", "classification")
 
         # Multi-class - should pass
-        data_multi = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5, 6],
-            'target': [0, 1, 2, 0, 1, 2]
-        })
-        validate_data_for_training(data_multi, 'target', 'classification')
+        data_multi = pd.DataFrame(
+            {"feature1": [1, 2, 3, 4, 5, 6], "target": [0, 1, 2, 0, 1, 2]}
+        )
+        validate_data_for_training(data_multi, "target", "classification")
 
     def test_multiclass_classification(self):
         """Test validation with many classes."""
-        data = pd.DataFrame({
-            'feature1': list(range(100)),
-            'target': [i % 10 for i in range(100)]  # 10 classes
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": list(range(100)),
+                "target": [i % 10 for i in range(100)],  # 10 classes
+            }
+        )
 
         # Should pass without errors
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
     def test_regression_with_single_value(self):
         """Test that regression allows single unique value (edge case)."""
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'target': [5.0, 5.0, 5.0, 5.0, 5.0]  # All same value
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5],
+                "target": [5.0, 5.0, 5.0, 5.0, 5.0],  # All same value
+            }
+        )
 
         # Regression should allow this (though it's not useful)
-        validate_data_for_training(data, 'target', 'regression')
+        validate_data_for_training(data, "target", "regression")
 
 
 class TestFileLoading:
@@ -189,10 +215,7 @@ class TestFileLoading:
 
         # Create a small CSV file
         csv_path = tmp_path / "small_data.csv"
-        data = pd.DataFrame({
-            'feature1': list(range(10)),
-            'target': [0, 1] * 5
-        })
+        data = pd.DataFrame({"feature1": list(range(10)), "target": [0, 1] * 5})
         data.to_csv(csv_path, index=False)
 
         # Should load successfully with default limit
@@ -206,11 +229,13 @@ class TestFileLoading:
         # Create a CSV file
         csv_path = tmp_path / "large_data.csv"
         # Create a reasonably sized dataset
-        data = pd.DataFrame({
-            'feature1': list(range(1000)),
-            'feature2': list(range(1000)),
-            'target': [0, 1] * 500
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": list(range(1000)),
+                "feature2": list(range(1000)),
+                "target": [0, 1] * 500,
+            }
+        )
         data.to_csv(csv_path, index=False)
 
         # Set a very small limit (e.g., 0.001 MB) - should fail
@@ -222,10 +247,7 @@ class TestFileLoading:
         from core import load_data
 
         csv_path = tmp_path / "data.csv"
-        data = pd.DataFrame({
-            'feature1': list(range(100)),
-            'target': [0, 1] * 50
-        })
+        data = pd.DataFrame({"feature1": list(range(100)), "target": [0, 1] * 50})
         data.to_csv(csv_path, index=False)
 
         # Should work with generous limit
@@ -245,7 +267,7 @@ class TestFileLoading:
 
         csv_path = tmp_path / "empty.csv"
         # Create empty CSV with just headers
-        pd.DataFrame(columns=['feature1', 'target']).to_csv(csv_path, index=False)
+        pd.DataFrame(columns=["feature1", "target"]).to_csv(csv_path, index=False)
 
         with pytest.raises(ValueError, match="empty"):
             load_data(csv_path)
@@ -255,7 +277,7 @@ class TestFileLoading:
         from core import load_data
 
         csv_path = tmp_path / "single_column.csv"
-        pd.DataFrame({'only_one_column': [1, 2, 3]}).to_csv(csv_path, index=False)
+        pd.DataFrame({"only_one_column": [1, 2, 3]}).to_csv(csv_path, index=False)
 
         with pytest.raises(ValueError, match="at least 2 columns"):
             load_data(csv_path)
@@ -269,17 +291,13 @@ class TestFileLoading:
 
         # Create file with .txt extension but valid CSV content
         txt_path = tmp_path / "data.txt"
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3],
-            'target': [0, 1, 0]
-        })
+        data = pd.DataFrame({"feature1": [1, 2, 3], "target": [0, 1, 0]})
         data.to_csv(txt_path, index=False)
 
         loaded = load_data(txt_path)
 
         # Should log a warning
-        assert any('.csv extension' in record.message
-                   for record in caplog.records)
+        assert any(".csv extension" in record.message for record in caplog.records)
         assert len(loaded) == 3
 
     def test_load_data_logs_file_size(self, tmp_path, caplog):
@@ -291,38 +309,39 @@ class TestFileLoading:
         caplog.set_level(logging.INFO)
 
         csv_path = tmp_path / "test_data.csv"
-        data = pd.DataFrame({
-            'feature1': list(range(100)),
-            'target': [0, 1] * 50
-        })
+        data = pd.DataFrame({"feature1": list(range(100)), "target": [0, 1] * 50})
         data.to_csv(csv_path, index=False)
 
         load_data(csv_path)
 
         # Check that data was loaded (should log something about loading)
-        assert any('Loading' in record.message or 'Loaded' in record.message
-                   for record in caplog.records)
+        assert any(
+            "Loading" in record.message or "Loaded" in record.message
+            for record in caplog.records
+        )
 
     def test_load_data_handles_mixed_types(self, tmp_path):
         """Test that load_data handles mixed data types correctly."""
         from core import load_data
 
         csv_path = tmp_path / "mixed_types.csv"
-        data = pd.DataFrame({
-            'numeric': [1, 2, 3, 4, 5],
-            'string': ['a', 'b', 'c', 'd', 'e'],
-            'mixed': ['1', '2', 'three', '4', '5'],  # Mixed numeric and text
-            'target': [0, 1, 0, 1, 0]
-        })
+        data = pd.DataFrame(
+            {
+                "numeric": [1, 2, 3, 4, 5],
+                "string": ["a", "b", "c", "d", "e"],
+                "mixed": ["1", "2", "three", "4", "5"],  # Mixed numeric and text
+                "target": [0, 1, 0, 1, 0],
+            }
+        )
         data.to_csv(csv_path, index=False)
 
         loaded = load_data(csv_path)
 
         # Should load successfully
         assert len(loaded) == 5
-        assert 'numeric' in loaded.columns
-        assert 'string' in loaded.columns
-        assert 'mixed' in loaded.columns
+        assert "numeric" in loaded.columns
+        assert "string" in loaded.columns
+        assert "mixed" in loaded.columns
 
 
 class TestModelSerialization:
@@ -344,7 +363,7 @@ class TestModelSerialization:
 
         # Verify it's the same type
         assert isinstance(loaded_model, LogisticRegression)
-        assert type(loaded_model) == type(model)
+        assert type(loaded_model) is type(model)
 
     def test_model_save_with_compression(self, tmp_path):
         """Test that compression is applied when saving models."""
@@ -416,10 +435,9 @@ class TestModelSerialization:
         import joblib
 
         # Create pipeline
-        pipeline = Pipeline([
-            ('scaler', StandardScaler()),
-            ('classifier', LogisticRegression())
-        ])
+        pipeline = Pipeline(
+            [("scaler", StandardScaler()), ("classifier", LogisticRegression())]
+        )
 
         # Save pipeline
         model_path = tmp_path / "pipeline.pkl"
@@ -428,8 +446,8 @@ class TestModelSerialization:
         # Load and verify
         loaded_pipeline = joblib.load(model_path)
         assert isinstance(loaded_pipeline, Pipeline)
-        assert 'scaler' in loaded_pipeline.named_steps
-        assert 'classifier' in loaded_pipeline.named_steps
+        assert "scaler" in loaded_pipeline.named_steps
+        assert "classifier" in loaded_pipeline.named_steps
 
 
 class TestMetricsComputation:
@@ -445,10 +463,10 @@ class TestMetricsComputation:
         metrics = _compute_classification_metrics(y_true, y_pred)
 
         # Verify all expected metrics are present
-        assert 'accuracy' in metrics
-        assert 'precision' in metrics
-        assert 'recall' in metrics
-        assert 'f1_score' in metrics
+        assert "accuracy" in metrics
+        assert "precision" in metrics
+        assert "recall" in metrics
+        assert "f1_score" in metrics
 
         # Verify they are floats and in valid range
         for metric_value in metrics.values():
@@ -466,8 +484,8 @@ class TestMetricsComputation:
         metrics = _compute_classification_metrics(y_true, y_pred, y_proba)
 
         # Should include ROC AUC for binary classification
-        assert 'roc_auc' in metrics
-        assert 0.0 <= metrics['roc_auc'] <= 1.0
+        assert "roc_auc" in metrics
+        assert 0.0 <= metrics["roc_auc"] <= 1.0
 
     def test_regression_metrics(self):
         """Test regression metrics computation."""
@@ -479,17 +497,17 @@ class TestMetricsComputation:
         metrics = _compute_regression_metrics(y_true, y_pred)
 
         # Verify all expected metrics are present
-        assert 'mse' in metrics
-        assert 'rmse' in metrics
-        assert 'mae' in metrics
-        assert 'r2' in metrics
+        assert "mse" in metrics
+        assert "rmse" in metrics
+        assert "mae" in metrics
+        assert "r2" in metrics
 
         # Verify they are floats
         for metric_value in metrics.values():
             assert isinstance(metric_value, float)
 
         # RMSE should be sqrt of MSE
-        assert np.isclose(metrics['rmse'], np.sqrt(metrics['mse']))
+        assert np.isclose(metrics["rmse"], np.sqrt(metrics["mse"]))
 
     def test_regression_metrics_perfect_prediction(self):
         """Test regression metrics with perfect predictions."""
@@ -501,10 +519,10 @@ class TestMetricsComputation:
         metrics = _compute_regression_metrics(y_true, y_pred)
 
         # Perfect prediction should have zero error and R2=1
-        assert np.isclose(metrics['mse'], 0.0)
-        assert np.isclose(metrics['rmse'], 0.0)
-        assert np.isclose(metrics['mae'], 0.0)
-        assert np.isclose(metrics['r2'], 1.0)
+        assert np.isclose(metrics["mse"], 0.0)
+        assert np.isclose(metrics["rmse"], 0.0)
+        assert np.isclose(metrics["mae"], 0.0)
+        assert np.isclose(metrics["r2"], 1.0)
 
 
 class TestSplitData:
@@ -514,14 +532,16 @@ class TestSplitData:
         """Test basic data splitting."""
         from core import split_data
 
-        data = pd.DataFrame({
-            'feature1': list(range(100)),
-            'feature2': list(range(100, 200)),
-            'target': [0, 1] * 50
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": list(range(100)),
+                "feature2": list(range(100, 200)),
+                "target": [0, 1] * 50,
+            }
+        )
 
         X_train, X_test, y_train, y_test = split_data(
-            data, 'target', test_size=0.2, random_state=42, task='classification'
+            data, "target", test_size=0.2, random_state=42, task="classification"
         )
 
         # Check shapes
@@ -531,21 +551,20 @@ class TestSplitData:
         assert len(y_test) == 20
 
         # Check that target is not in X
-        assert 'target' not in X_train.columns
-        assert 'target' not in X_test.columns
+        assert "target" not in X_train.columns
+        assert "target" not in X_test.columns
 
     def test_split_data_stratified(self):
         """Test stratified splitting for classification."""
         from core import split_data
 
         # Create imbalanced dataset
-        data = pd.DataFrame({
-            'feature1': list(range(100)),
-            'target': [0] * 80 + [1] * 20  # 80-20 split
-        })
+        data = pd.DataFrame(
+            {"feature1": list(range(100)), "target": [0] * 80 + [1] * 20}  # 80-20 split
+        )
 
         X_train, X_test, y_train, y_test = split_data(
-            data, 'target', test_size=0.2, random_state=42, task='classification'
+            data, "target", test_size=0.2, random_state=42, task="classification"
         )
 
         # Check that class proportions are roughly maintained
@@ -560,13 +579,15 @@ class TestSplitData:
         """Test that regression doesn't use stratification."""
         from core import split_data
 
-        data = pd.DataFrame({
-            'feature1': list(range(100)),
-            'target': np.random.randn(100)  # Continuous target
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": list(range(100)),
+                "target": np.random.randn(100),  # Continuous target
+            }
+        )
 
         X_train, X_test, y_train, y_test = split_data(
-            data, 'target', test_size=0.3, random_state=42, task='regression'
+            data, "target", test_size=0.3, random_state=42, task="regression"
         )
 
         # Should split without error
@@ -577,22 +598,16 @@ class TestSplitData:
         """Test error when target column is missing."""
         from core import split_data
 
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'feature2': [6, 7, 8, 9, 10]
-        })
+        data = pd.DataFrame({"feature1": [1, 2, 3, 4, 5], "feature2": [6, 7, 8, 9, 10]})
 
         with pytest.raises(KeyError, match="not found"):
-            split_data(data, 'nonexistent_target', test_size=0.2)
+            split_data(data, "nonexistent_target", test_size=0.2)
 
     def test_split_data_insufficient_samples(self):
         """Test error with too few samples."""
         from core import split_data
 
-        data = pd.DataFrame({
-            'feature1': [1, 2],
-            'target': [0, 1]
-        })
+        data = pd.DataFrame({"feature1": [1, 2], "target": [0, 1]})
 
         with pytest.raises(ValueError, match="Insufficient data"):
-            split_data(data, 'target', test_size=0.5)
+            split_data(data, "target", test_size=0.5)

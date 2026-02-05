@@ -1,5 +1,5 @@
-"""
-Example demonstrating new v1.3.0 features:
+"""Example demonstrating new v1.3.0 features.
+
 - Data validation with helpful error messages
 - File size limit protection
 - Secure model serialization with joblib
@@ -11,6 +11,7 @@ Run from repo root: python examples/05_new_features_demo.py
 """
 
 import sys
+import tempfile
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -21,11 +22,7 @@ import numpy as np
 
 
 def example_1_valid_data():
-    """
-    Create a small valid binary classification dataset, save it to /tmp/valid_data.csv, run core.run_automl with a short configuration, print the training outcome, and remove the temporary file.
-    
-    The dataset contains three numeric features and a binary `target`. The function prints the dataset shape and class distribution, attempts training (expected to succeed for this example), reports accuracy on success or the exception on failure, and deletes the CSV afterwards.
-    """
+    """Example 1: Valid data - training succeeds."""
     print("\n" + "=" * 60)
     print("Example 1: Valid Classification Data")
     print("=" * 60)
@@ -40,9 +37,11 @@ def example_1_valid_data():
         }
     )
 
-    # Save to CSV
-    data_path = Path("/tmp/valid_data.csv")
-    data.to_csv(data_path, index=False)
+    # Save to CSV using tempfile
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        data_path = Path(f.name)
+        data.to_csv(data_path, index=False)
+
     print(f"✓ Created valid dataset: {data.shape}")
     print(f"✓ Class distribution: {data['target'].value_counts().to_dict()}")
 
@@ -67,11 +66,7 @@ def example_1_valid_data():
 
 
 def example_2_nan_in_target():
-    """
-    Demonstrates that the training validation detects NaN values in the target column.
-    
-    Creates a toy classification dataset containing NaN in the `target` column, saves it to `/tmp/nan_target.csv`, invokes `run_automl` and expects a `ValueError` from validation, prints a short confirmation of the caught error, and removes the temporary file.
-    """
+    """Example 2: NaN in target - validation catches it."""
     print("\n" + "=" * 60)
     print("Example 2: NaN in Target Column (Should Fail Validation)")
     print("=" * 60)
@@ -85,15 +80,18 @@ def example_2_nan_in_target():
         }
     )
 
-    data_path = Path("/tmp/nan_target.csv")
-    data.to_csv(data_path, index=False)
+    # Save to CSV using tempfile
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        data_path = Path(f.name)
+        data.to_csv(data_path, index=False)
+
     print(f"✓ Created dataset with NaN in target: {data['target'].isna().sum()} NaNs")
 
     # Try to train - should fail with clear error
     from core import run_automl
 
     try:
-        result = run_automl(
+        _ = run_automl(
             data_path=data_path,
             target_column="target",
             task="classification",
@@ -103,7 +101,7 @@ def example_2_nan_in_target():
         )
         print("✗ Training should have failed but didn't!")
     except ValueError as e:
-        print(f"✓ Validation correctly caught the issue:")
+        print("✓ Validation correctly caught the issue:")
         print(f"  Error: {str(e)[:100]}...")
 
     # Cleanup
@@ -111,11 +109,7 @@ def example_2_nan_in_target():
 
 
 def example_3_single_class():
-    """
-    Demonstrates that training validation rejects classification datasets whose target contains only a single class.
-    
-    Creates a toy dataset with a single-class target, writes it to /tmp/single_class.csv, calls core.run_automl for a classification task and expects a ValueError indicating invalid target class diversity, and removes the temporary file. Prints progress and a short snippet of the validation error when caught.
-    """
+    """Example 3: Single class - validation catches it."""
     print("\n" + "=" * 60)
     print("Example 3: Single Class in Classification (Should Fail)")
     print("=" * 60)
@@ -129,15 +123,18 @@ def example_3_single_class():
         }
     )
 
-    data_path = Path("/tmp/single_class.csv")
-    data.to_csv(data_path, index=False)
+    # Save to CSV using tempfile
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        data_path = Path(f.name)
+        data.to_csv(data_path, index=False)
+
     print(f"✓ Created dataset with single class: {data['target'].unique()}")
 
     # Try to train - should fail with clear error
     from core import run_automl
 
     try:
-        result = run_automl(
+        _ = run_automl(
             data_path=data_path,
             target_column="target",
             task="classification",
@@ -147,7 +144,7 @@ def example_3_single_class():
         )
         print("✗ Training should have failed but didn't!")
     except ValueError as e:
-        print(f"✓ Validation correctly caught the issue:")
+        print("✓ Validation correctly caught the issue:")
         print(f"  Error: {str(e)[:100]}...")
 
     # Cleanup
@@ -169,8 +166,11 @@ def example_4_class_imbalance_warning():
         }
     )
 
-    data_path = Path("/tmp/imbalanced.csv")
-    data.to_csv(data_path, index=False)
+    # Save to CSV using tempfile
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        data_path = Path(f.name)
+        data.to_csv(data_path, index=False)
+
     print(f"✓ Created imbalanced dataset:")
     print(f"  Class 0: {(data['target'] == 0).sum()} samples")
     print(f"  Class 1: {(data['target'] == 1).sum()} samples")
@@ -199,11 +199,7 @@ def example_4_class_imbalance_warning():
 
 
 def example_5_model_serialization():
-    """
-    Demonstrates serializing and deserializing a scikit-learn LogisticRegression model using joblib.
-    
-    Saves a small LogisticRegression instance to /tmp/test_model.pkl with compression, loads it back to verify that coefficients match, and removes the temporary file when finished.
-    """
+    """Example 5: Demonstrate secure model serialization with joblib."""
     print("\n" + "=" * 60)
     print("Example 5: Secure Model Serialization (joblib)")
     print("=" * 60)
@@ -217,7 +213,10 @@ def example_5_model_serialization():
     model.intercept_ = np.array([0.5])
     model.classes_ = np.array([0, 1])
 
-    model_path = Path("/tmp/test_model.pkl")
+    # Save to temporary file
+    with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as f:
+        model_path = Path(f.name)
+
     print("✓ Saving model with joblib (secure)...")
     joblib.dump(model, model_path, compress=3)
     print(f"  Saved to: {model_path}")
@@ -248,13 +247,11 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("Demo Complete!")
     print("=" * 60)
-    print(
-        """
+    print("""
 Key Takeaways:
 1. Data validation catches issues BEFORE training starts
 2. Clear error messages help you fix problems quickly
 3. Warnings inform you about potential issues (but training continues)
 4. Joblib provides secure, compressed model serialization
 5. All improvements maintain backward compatibility
-"""
-    )
+""")
