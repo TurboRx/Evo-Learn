@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import warnings
 from datetime import datetime
 from pathlib import Path
@@ -39,8 +40,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Suppress some warnings for cleaner output (can be configured via environment)
-import os
-
 if os.getenv("EVO_LEARN_SHOW_WARNINGS", "").lower() != "true":
     warnings.filterwarnings("ignore", category=FutureWarning)
     warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")

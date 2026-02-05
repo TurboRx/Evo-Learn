@@ -227,7 +227,7 @@ def create_evaluation_dashboard(
         out_path.mkdir(parents=True, exist_ok=True)
 
         # Create summary HTML report
-        html_content = f"""
+        html_content = """
         <!DOCTYPE html>
         <html>
         <head>
@@ -255,7 +255,7 @@ def create_evaluation_dashboard(
         """
 
         (out_path / "evaluation_report.html").write_text(html_content)
-        logger.info(f"Evaluation dashboard saved to {output_dir}")
+        logger.info("Evaluation dashboard saved to %s", output_dir)
 
     except Exception as e:
         logger.error(f"Failed to create evaluation dashboard: {e}")

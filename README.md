@@ -28,6 +28,31 @@
 - **Type-Safe**: Comprehensive type hints throughout
 - **Well-Tested**: Extensive test suite with good coverage
 
+## 🆕 What's New in v1.3.0
+
+### Security & Reliability Improvements
+- **🔒 Security**: Replaced pickle with joblib for safer model serialization
+- **✅ Data Validation**: Automatic validation before training catches:
+  - NaN values in target column
+  - Single-class classification (minimum 2 classes required)
+  - Severe class imbalance (warns if >10:1 ratio)
+  - All-NaN features and constant features
+- **🛡️ OOM Protection**: File size limit validation (default 500MB) prevents memory exhaustion
+- **📝 Better Logging**: All errors now properly logged instead of silently failing
+
+### Code Quality
+- **Type Hints**: Complete type annotations for all public functions
+- **Pandas 3.0 Ready**: Fixed deprecation warnings for future compatibility  
+- **Better Preprocessing**: Fixed StandardScaler and OneHotEncoder configurations
+- **Code Formatting**: Entire codebase formatted with Black
+
+### Developer Experience
+- **Configurable Warnings**: Set `EVO_LEARN_SHOW_WARNINGS=true` to see all warnings
+- **Better Error Messages**: More informative validation errors with actionable guidance
+- **Comprehensive Tests**: 26 tests covering new features and edge cases
+
+See [CHANGELOG.md](CHANGELOG.md) for complete details.
+
 ## Installation
 
 ### From Source
@@ -174,6 +199,8 @@ Check the [`examples/`](examples/) directory for sample code and tutorials.
 
 ## Troubleshooting
 
+### Common Issues
+
 | Issue | Solution |
 |-------|----------|
 | TPOT fails or times out | Use `--baseline` flag or set `baseline: true` in config |
@@ -182,6 +209,46 @@ Check the [`examples/`](examples/) directory for sample code and tutorials.
 | Import errors | Verify installation with `python check_installation.py` |
 | Class imbalance | Stratified splits are applied automatically |
 | Mixed data types | Automatic imputation and encoding handles this |
+
+### New in v1.3.0: Data Validation Errors
+
+**Error: "Target column contains NaN values"**
+```python
+# Solution: Remove or impute NaN values in target before training
+df = df.dropna(subset=['target_column'])
+# or
+df['target_column'].fillna(df['target_column'].mode()[0], inplace=True)
+```
+
+**Error: "Classification requires at least 2 classes"**
+```python
+# Solution: Check your target column has multiple classes
+print(df['target_column'].value_counts())
+# If only one class exists, this is not a classification problem
+```
+
+**Warning: "Severe class imbalance detected"**
+```python
+# This is informational - your model will still train
+# Consider techniques like:
+# 1. Use stratified sampling (automatic in Evo-Learn)
+# 2. Apply SMOTE for oversampling minority class
+# 3. Use class weights in your model
+# 4. Collect more data for minority classes
+```
+
+**Error: "File size exceeds maximum allowed size"**
+```python
+# Solution: Increase the max_size_mb parameter
+from core import load_data
+data = load_data('large_file.csv', max_size_mb=1000)  # Allow 1GB
+```
+
+### Security Notes
+
+- **v1.3.0+**: Models are saved with `joblib` instead of `pickle` for better security
+- Old pickle models will still load, but new models use the safer format
+- If you need to control warnings during development: `export EVO_LEARN_SHOW_WARNINGS=true`
 
 ## Development
 
