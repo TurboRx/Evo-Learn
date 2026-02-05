@@ -51,7 +51,7 @@ def save_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) ->
 
 def save_pr_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> None:
     """
-    Save a precision–recall curve plot for binary classification to a file.
+    Save a precision-recall curve plot for binary classification to a file.
     
     Parameters:
         y_true (np.ndarray): True binary labels.
