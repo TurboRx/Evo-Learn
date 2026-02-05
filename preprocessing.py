@@ -23,18 +23,23 @@ def build_preprocessor(
     max_categorical_features: int = 100,
 ) -> tuple[ColumnTransformer, list[str] | None]:
     """
-    Build a preprocessing pipeline that imputes, encodes categoricals, and scales numeric features.
-
-    Args:
-        df: Input dataframe
-        target_column: Name of target column
-        impute_strategy: Imputation strategy for numeric features
-        handle_categoricals: Whether to handle categorical features
-        scale_numeric: Whether to scale numeric features
-        max_categorical_features: Maximum number of one-hot encoded features
-
+    Build a ColumnTransformer that imputes missing values, optionally encodes categorical features, and optionally scales numeric features.
+    
+    Parameters:
+        df (pd.DataFrame): Input DataFrame containing features and the target column.
+        target_column (str): Name of the target column to exclude from preprocessing.
+        impute_strategy (str): Strategy for numeric imputation (e.g., "median", "mean"); used by SimpleImputer.
+        handle_categoricals (bool): If True, detect and one-hot encode categorical columns.
+        scale_numeric (bool): If True, apply StandardScaler to numeric columns after imputation.
+        max_categorical_features (int): Maximum number of categories per categorical column allowed by OneHotEncoder (prevents feature explosion).
+    
     Returns:
-        tuple: (preprocessor_pipeline, feature_names_out)
+        tuple[ColumnTransformer, list[str] | None]:
+            - preprocessor: A fitted ColumnTransformer implementing the configured pipelines for numeric and (optional) categorical features.
+            - feature_names_out: List of output feature names produced by the preprocessor, or `None` if feature-name extraction failed.
+    
+    Raises:
+        ValueError: If no usable features remain after excluding the target and applying the handle_categoricals setting.
     """
     X = df.drop(columns=[target_column]) if target_column in df.columns else df.copy()
 
