@@ -11,6 +11,7 @@ __email__ = "turborx@example.com"
 from .core import load_model, predict, run_automl
 from .logging_utils import setup_logging
 from .preprocessing import build_preprocessor
+from .config import EvoLearnConfig, load_config
 
 __all__ = [
     "run_automl",
@@ -18,4 +19,6 @@ __all__ = [
     "predict",
     "build_preprocessor",
     "setup_logging",
+    "EvoLearnConfig",
+    "load_config",
 ]

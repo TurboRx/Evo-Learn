@@ -282,7 +282,7 @@ def show_version(args=None):
     print("\nEvo-Learn AutoML Toolkit v1.2.0")
     print("Professional automated machine learning with TPOT")
     print("Features: Robust preprocessing, baseline fallbacks, comprehensive evaluation")
-    print("Python: 3.14+ compatible with modern features")
+    print("Python: 3.10+ compatible with modern features")
     
     try:
         import sys

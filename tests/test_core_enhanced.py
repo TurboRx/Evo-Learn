@@ -47,7 +47,7 @@ class TestLoadData:
 
         # Should fail with tiny limit
         with pytest.raises(ValueError, match="exceeds maximum"):
-            load_data(csv_path, max_size_mb=0.001)
+            load_data(csv_path, max_size_mb=0.0001)
 
     def test_load_nonexistent_file(self):
         """Test loading a nonexistent file."""

@@ -53,12 +53,12 @@ def load_data(data_path: str | Path, max_size_mb: int = 500) -> pd.DataFrame:
         file_size_mb = path.stat().st_size / (1024 * 1024)
         if file_size_mb > max_size_mb:
             raise ValueError(
-                f"File size ({file_size_mb:.2f}MB) exceeds maximum ({max_size_mb}MB)"
+                f"File size ({file_size_mb:.2f}MB) exceeds maximum allowed size ({max_size_mb}MB)"
             )
         logger.info(f"Loading: {data_path} ({file_size_mb:.2f}MB)")
 
         if path.suffix.lower() != ".csv":
-            logger.warning(f"Non-CSV extension: {data_path}")
+            logger.warning(f"File does not have .csv extension: {data_path}")
 
         data = pd.read_csv(data_path)
         logger.info(f"Loaded: shape={data.shape}")
@@ -78,6 +78,8 @@ def load_data(data_path: str | Path, max_size_mb: int = 500) -> pd.DataFrame:
     except FileNotFoundError:
         logger.error(f"File not found: {data_path}")
         raise
+    except pd.errors.EmptyDataError:
+        raise ValueError(f"Empty file: {data_path}")
     except pd.errors.ParserError as e:
         logger.error(f"CSV parse error: {e}")
         raise ValueError(f"Invalid CSV format: {e}")
@@ -95,13 +97,13 @@ def split_data(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     """Split data into train/test sets with stratification for classification."""
     if target_column not in data.columns:
-        raise KeyError(f"Target '{target_column}' not in columns")
+        raise KeyError(f"Target '{target_column}' not found in columns")
 
     X = data.drop(columns=[target_column])
     y = data[target_column]
 
     if len(data) < 4:
-        raise ValueError(f"Need at least 4 rows, got {len(data)}")
+        raise ValueError(f"Insufficient data: need at least 4 rows, got {len(data)}")
 
     strat = None
     if task.lower() == "classification":
@@ -126,6 +128,13 @@ def split_data(
         return X_train, X_test, y_train, y_test
 
     except ValueError as e:
+        if strat is not None:
+            logger.warning(f"Stratified split failed ({e}), retrying without stratification")
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=test_size, random_state=random_state, stratify=None
+            )
+            logger.info(f"Split: train={X_train.shape}, test={X_test.shape}")
+            return X_train, X_test, y_train, y_test
         logger.error(f"Split failed: {e}")
         raise
 
@@ -162,7 +171,7 @@ def validate_data_for_training(
     if target_column not in data.columns:
         available_cols = list(data.columns)
         raise ValueError(
-            f"Target '{target_column}' not found. "
+            f"Target column '{target_column}' not found. "
             f"Available: {available_cols[:10]}{'...' if len(available_cols) > 10 else ''}"
         )
 
@@ -185,12 +194,12 @@ def validate_data_for_training(
         )
 
         if imbalance_ratio > 10:
-            logger.warning(f"Severe imbalance: {imbalance_ratio:.1f}:1")
+            logger.warning(f"Severe class imbalance: {imbalance_ratio:.1f}:1")
             logger.warning(f"Distribution: {class_counts.to_dict()}")
 
     all_nan_cols = data.columns[data.isna().all()].tolist()
     if all_nan_cols:
-        logger.warning(f"{len(all_nan_cols)} all-NaN columns: {all_nan_cols[:5]}")
+        logger.warning(f"{len(all_nan_cols)} columns with all NaN values: {all_nan_cols[:5]}")
 
     constant_cols = []
     for col in data.columns:
@@ -353,6 +362,7 @@ def run_automl(
 
             result = {
                 "model_name": model_name,
+                "model_type": model_tag,
                 "task": task,
                 "model_path": str(model_path),
                 "pipeline_path": None,
@@ -443,6 +453,7 @@ def run_automl(
 
         result = {
             "model_name": model_name,
+            "model_type": "tpot",
             "task": task,
             "model_path": str(model_path),
             "pipeline_path": str(python_script_path) if python_script_path else None,
