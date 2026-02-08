@@ -1,5 +1,5 @@
 # Evo-Learn Dockerfile
-FROM python:3.14-slim
+FROM python:3.13-slim
 
 # Set working directory
 WORKDIR /app
@@ -23,7 +23,7 @@ COPY . .
 RUN pip install --no-cache-dir -e .
 
 # Create output directory
-RUN mkdir -p /app/mloptimizer/models
+RUN mkdir -p /app/models
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

@@ -89,11 +89,13 @@ def get_metrics(
 
 
 def validate_input(data: Any, expected_type: Any, var_name: str) -> None:
-    """Validate input type."""
+    """Validate input type and emptiness."""
     if not isinstance(data, expected_type):
         raise TypeError(
             f"{var_name} must be {expected_type.__name__}, got {type(data).__name__}"
         )
+    if hasattr(data, '__len__') and len(data) == 0:
+        raise ValueError(f"{var_name} cannot be empty")
 
 
 def get_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:

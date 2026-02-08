@@ -45,7 +45,7 @@ def save_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) ->
         plt.close()
         logger.info(f"ROC saved: {path}")
     except Exception as e:
-        logger.error(f"ROC save failed: {e}")
+        logger.error(f"Failed to save ROC curve: {e}")
 
 
 def save_pr_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> None:
@@ -68,7 +68,7 @@ def save_pr_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> 
         plt.close()
         logger.info(f"PR saved: {path}")
     except Exception as e:
-        logger.error(f"PR save failed: {e}")
+        logger.error(f"Failed to save PR curve: {e}")
 
 
 def save_residuals(y_true: np.ndarray, y_pred: np.ndarray, path: str | Path) -> None:
@@ -86,7 +86,7 @@ def save_residuals(y_true: np.ndarray, y_pred: np.ndarray, path: str | Path) -> 
         plt.close()
         logger.info(f"Residuals saved: {path}")
     except Exception as e:
-        logger.error(f"Residuals save failed: {e}")
+        logger.error(f"Failed to save residuals plot: {e}")
 
 
 def save_actual_vs_pred(
@@ -107,7 +107,7 @@ def save_actual_vs_pred(
         plt.close()
         logger.info(f"Actual vs predicted saved: {path}")
     except Exception as e:
-        logger.error(f"Actual vs predicted save failed: {e}")
+        logger.error(f"Failed to save actual vs predicted plot: {e}")
 
 
 def plot_feature_distributions(
@@ -150,7 +150,7 @@ def plot_feature_distributions(
             logger.warning(f"Plotted 10/{len(numeric_cols)} features")
         logger.info(f"Distributions saved: {output_dir}")
     except Exception as e:
-        logger.error(f"Distribution plots failed: {e}")
+        logger.error(f"Failed to create distribution plots: {e}")
 
 
 def plot_correlation_matrix(data: pd.DataFrame, output_path: str | Path) -> None:
@@ -178,9 +178,9 @@ def plot_correlation_matrix(data: pd.DataFrame, output_path: str | Path) -> None
             plt.close()
             logger.info(f"Correlation matrix saved: {output_path}")
         else:
-            logger.warning("Need >1 numeric column for correlation")
+            logger.warning("Not enough numeric columns for correlation matrix (need >1)")
     except Exception as e:
-        logger.error(f"Correlation matrix failed: {e}")
+        logger.error(f"Failed to create correlation matrix: {e}")
 
 
 def create_evaluation_dashboard(
@@ -222,4 +222,4 @@ def create_evaluation_dashboard(
         logger.info("Dashboard saved: %s", output_dir)
 
     except Exception as e:
-        logger.error(f"Dashboard creation failed: {e}")
+        logger.error(f"Failed to create dashboard: {e}")
