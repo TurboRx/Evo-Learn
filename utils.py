@@ -94,8 +94,11 @@ def validate_input(data: Any, expected_type: Any, var_name: str) -> None:
         raise TypeError(
             f"{var_name} must be {expected_type.__name__}, got {type(data).__name__}"
         )
-    if hasattr(data, '__len__') and len(data) == 0:
-        raise ValueError(f"{var_name} cannot be empty")
+    try:
+        if len(data) == 0:
+            raise ValueError(f"{var_name} cannot be empty")
+    except TypeError:
+        pass  # data doesn't support len()
 
 
 def get_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
