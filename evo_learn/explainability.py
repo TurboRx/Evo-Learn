@@ -258,8 +258,11 @@ class ModelExplainer:
         
         # Handle multi-output SHAP values
         if isinstance(self.shap_values, list):
-            class_idx = 1  # positive class for binary; last class for multiclass
-            class_idx = min(class_idx, len(self.shap_values) - 1)
+            # Use index 1 as the positive class for binary; use the last class for multiclass
+            if len(self.shap_values) == 2:
+                class_idx = 1
+            else:
+                class_idx = len(self.shap_values) - 1
             shap_vals = self.shap_values[class_idx][sample_idx]
         else:
             class_idx = None
