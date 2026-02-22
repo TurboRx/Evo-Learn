@@ -422,24 +422,27 @@ def run_automl(
             case _:
                 tpot = TPOTRegressor(**tpot_params)
 
-        tpot.fit(X_train, y_train)
+        model = Pipeline(steps=[("preprocess", preprocessor), ("tpot", tpot)])
+        model.fit(X_train, y_train)
 
-        y_pred = tpot.predict(X_test)
+        y_pred = model.predict(X_test)
 
         match task.lower():
             case "classification":
                 y_proba = None
-                if hasattr(tpot, "predict_proba"):
-                    y_proba = tpot.predict_proba(X_test)[:, 1]
+                if hasattr(model, "predict_proba"):
+                    try:
+                        proba = model.predict_proba(X_test)
+                        if proba.shape[1] == 2:
+                            y_proba = proba[:, 1]
+                    except Exception:
+                        pass
                 metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
             case _:
                 metrics = _compute_regression_metrics(y_test, y_pred)
 
         model_name = f"tpot_{task}_{timestamp}"
         model_path = output_dir / f"{model_name}.pkl"
-
-        model = Pipeline(steps=[("preprocess", preprocessor), ("tpot", tpot)])
-        model.fit(X_train, y_train)
 
         python_script_path = output_dir / f"{model_name}_pipeline.py"
         try:

@@ -1,5 +1,6 @@
 """Configuration management with validation."""
 
+import dataclasses
 from typing import Dict, Any, Optional
 from pathlib import Path
 import yaml
@@ -117,8 +118,14 @@ class EvoLearnConfig:
         with open(path, 'r') as f:
             config_dict = yaml.safe_load(f) or {}
         
+        known_fields = {f.name for f in dataclasses.fields(cls)}
+        filtered_config = {k: v for k, v in config_dict.items() if k in known_fields}
+        unknown_keys = set(config_dict) - known_fields
+        if unknown_keys:
+            logger.warning(f"Ignoring unknown config keys: {sorted(unknown_keys)}")
+        
         logger.info(f"Loaded configuration from: {config_path}")
-        return cls(**config_dict)
+        return cls(**filtered_config)
     
     def to_yaml(self, output_path: str) -> None:
         """Save configuration to YAML file.
