@@ -127,9 +127,11 @@ def cross_validate_model(
         logger.info(f"Fold {fold_idx + 1} scores: {scores}")
     
     # Aggregate results — only include metrics present in every fold
-    metric_names = set(fold_scores[0].keys())
-    for fold in fold_scores[1:]:
-        metric_names &= set(fold.keys())
+    metric_names = [
+        metric
+        for metric in fold_scores[0].keys()
+        if all(metric in fold for fold in fold_scores[1:])
+    ]
     
     aggregated_scores = {}
     
