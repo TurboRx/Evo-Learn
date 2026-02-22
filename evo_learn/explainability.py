@@ -35,6 +35,8 @@ class ModelExplainer:
         self.X_train = X_train
         self.explainer = None
         self.shap_values = None
+        self._X_test_transformed = None
+        self._transformed_feature_names: list | None = None
         
         logger.info("Initialized ModelExplainer")
     
@@ -96,10 +98,26 @@ class ModelExplainer:
                 X_train_transformed = preprocess_step[1].transform(
                     self.X_train.sample(min(100, len(self.X_train)), random_state=42)
                 )
+                try:
+                    self._transformed_feature_names = list(
+                        preprocess_step[1].get_feature_names_out()
+                    )
+                except Exception:
+                    pass
         else:
             X_test_transformed = X_test
             X_train_transformed = self.X_train.sample(min(100, len(self.X_train)), random_state=42)
             model_to_explain = self.model
+        
+        self._X_test_transformed = X_test_transformed
+        # Use transformed feature names if already set (by preprocessor), else fall back
+        # to column names of the transformed data (works for both ndarray and DataFrame)
+        if self._transformed_feature_names is None:
+            self._transformed_feature_names = (
+                list(X_test_transformed.columns)
+                if hasattr(X_test_transformed, "columns")
+                else None
+            )
         
         # Choose appropriate explainer
         try:
@@ -161,7 +179,8 @@ class ModelExplainer:
         plt.figure(figsize=(10, 8))
         shap.summary_plot(
             self.shap_values,
-            features=self.X_train.columns if hasattr(self.X_train, 'columns') else None,
+            features=self._X_test_transformed,
+            feature_names=self._transformed_feature_names,
             plot_type=plot_type,
             max_display=max_display,
             show=False
@@ -198,11 +217,12 @@ class ModelExplainer:
         # Compute mean importance
         importance = np.mean(shap_vals, axis=0)
         
-        # Get feature names
-        if hasattr(self.X_train, 'columns'):
-            feature_names = self.X_train.columns
-        else:
-            feature_names = [f"Feature {i}" for i in range(len(importance))]
+        # Get feature names (use transformed names to match SHAP values dimensions)
+        feature_names = (
+            self._transformed_feature_names
+            if self._transformed_feature_names is not None
+            else [f"Feature {i}" for i in range(len(importance))]
+        )
         
         # Sort and plot
         indices = np.argsort(importance)[-max_display:]
@@ -238,17 +258,45 @@ class ModelExplainer:
         
         # Handle multi-output SHAP values
         if isinstance(self.shap_values, list):
-            shap_vals = self.shap_values[1][sample_idx]  # Positive class
+            # Use index 1 as the positive class for binary; use the last class for multiclass
+            if len(self.shap_values) == 2:
+                class_idx = 1
+            else:
+                class_idx = len(self.shap_values) - 1
+            shap_vals = self.shap_values[class_idx][sample_idx]
         else:
+            class_idx = None
             shap_vals = self.shap_values[sample_idx]
         
+        # Use iloc for positional indexing so non-sequential DataFrame indices
+        # (e.g. after .sample()) don't cause a KeyError.
+        if self._X_test_transformed is not None:
+            transformed = self._X_test_transformed
+            if hasattr(transformed, "iloc"):
+                sample_data = transformed.iloc[sample_idx]
+            else:
+                sample_data = transformed[sample_idx]
+        else:
+            sample_data = None
+
+        # Resolve base_values to a scalar when expected_value is array-like
+        # (multi-class explainers return one expected value per class).
+        raw_ev = self.explainer.expected_value if hasattr(self.explainer, 'expected_value') else 0
+        if hasattr(raw_ev, '__len__'):
+            if class_idx is not None and class_idx < len(raw_ev):
+                base_value = float(raw_ev[class_idx])
+            else:
+                base_value = float(raw_ev[0])
+        else:
+            base_value = float(raw_ev) if raw_ev != 0 else 0
+
         plt.figure(figsize=(10, 6))
         shap.waterfall_plot(
             shap.Explanation(
                 values=shap_vals,
-                base_values=self.explainer.expected_value if hasattr(self.explainer, 'expected_value') else 0,
-                data=self.X_train.iloc[sample_idx] if hasattr(self.X_train, 'iloc') else None,
-                feature_names=self.X_train.columns if hasattr(self.X_train, 'columns') else None
+                base_values=base_value,
+                data=sample_data,
+                feature_names=self._transformed_feature_names
             ),
             show=False
         )
@@ -304,8 +352,15 @@ def explain_model(
             output_path=str(output_path / f"{model_name}_feature_importance.png")
         )
         
-        # Explain first few predictions
-        for i in range(min(3, len(X_test))):
+        # Explain first few predictions — use the number of rows in the stored
+        # SHAP values (which may have been sampled) rather than len(X_test), so
+        # the indices are always valid positional offsets into _X_test_transformed.
+        n_explained = len(
+            explainer.shap_values[0]
+            if isinstance(explainer.shap_values, list)
+            else explainer.shap_values
+        )
+        for i in range(min(3, n_explained)):
             explainer.explain_prediction(
                 sample_idx=i,
                 output_path=str(output_path / f"{model_name}_explanation_{i}.png")

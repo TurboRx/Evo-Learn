@@ -182,6 +182,9 @@ def log_experiment_end(
     logger.info(f"Duration: {duration:.2f} seconds ({duration/60:.2f} minutes)")
     logger.info(f"Metrics:")
     for metric_name, metric_value in metrics.items():
-        logger.info(f"  {metric_name}: {metric_value:.4f}")
+        try:
+            logger.info(f"  {metric_name}: {metric_value:.4f}")
+        except (TypeError, ValueError):
+            logger.info(f"  {metric_name}: {metric_value}")
     logger.info(f"Model saved: {model_path}")
     logger.info("=" * 60)
