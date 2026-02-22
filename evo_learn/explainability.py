@@ -258,8 +258,11 @@ class ModelExplainer:
         
         # Handle multi-output SHAP values
         if isinstance(self.shap_values, list):
-            shap_vals = self.shap_values[1][sample_idx]  # Positive class
+            class_idx = 1  # positive class for binary; last class for multiclass
+            class_idx = min(class_idx, len(self.shap_values) - 1)
+            shap_vals = self.shap_values[class_idx][sample_idx]
         else:
+            class_idx = None
             shap_vals = self.shap_values[sample_idx]
         
         # Use iloc for positional indexing so non-sequential DataFrame indices
@@ -273,11 +276,22 @@ class ModelExplainer:
         else:
             sample_data = None
 
+        # Resolve base_values to a scalar when expected_value is array-like
+        # (multi-class explainers return one expected value per class).
+        raw_ev = self.explainer.expected_value if hasattr(self.explainer, 'expected_value') else 0
+        if hasattr(raw_ev, '__len__'):
+            if class_idx is not None and class_idx < len(raw_ev):
+                base_value = float(raw_ev[class_idx])
+            else:
+                base_value = float(raw_ev[0])
+        else:
+            base_value = float(raw_ev) if raw_ev != 0 else 0
+
         plt.figure(figsize=(10, 6))
         shap.waterfall_plot(
             shap.Explanation(
                 values=shap_vals,
-                base_values=self.explainer.expected_value if hasattr(self.explainer, 'expected_value') else 0,
+                base_values=base_value,
                 data=sample_data,
                 feature_names=self._transformed_feature_names
             ),
