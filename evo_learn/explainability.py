@@ -261,16 +261,23 @@ class ModelExplainer:
         else:
             shap_vals = self.shap_values[sample_idx]
         
+        # Use iloc for positional indexing so non-sequential DataFrame indices
+        # (e.g. after .sample()) don't cause a KeyError.
+        if self._X_test_transformed is not None:
+            transformed = self._X_test_transformed
+            if hasattr(transformed, "iloc"):
+                sample_data = transformed.iloc[sample_idx]
+            else:
+                sample_data = transformed[sample_idx]
+        else:
+            sample_data = None
+
         plt.figure(figsize=(10, 6))
         shap.waterfall_plot(
             shap.Explanation(
                 values=shap_vals,
                 base_values=self.explainer.expected_value if hasattr(self.explainer, 'expected_value') else 0,
-                data=(
-                    self._X_test_transformed[sample_idx]
-                    if self._X_test_transformed is not None
-                    else None
-                ),
+                data=sample_data,
                 feature_names=self._transformed_feature_names
             ),
             show=False
@@ -327,8 +334,15 @@ def explain_model(
             output_path=str(output_path / f"{model_name}_feature_importance.png")
         )
         
-        # Explain first few predictions
-        for i in range(min(3, len(X_test))):
+        # Explain first few predictions — use the number of rows in the stored
+        # SHAP values (which may have been sampled) rather than len(X_test), so
+        # the indices are always valid positional offsets into _X_test_transformed.
+        n_explained = len(
+            explainer.shap_values[0]
+            if isinstance(explainer.shap_values, list)
+            else explainer.shap_values
+        )
+        for i in range(min(3, n_explained)):
             explainer.explain_prediction(
                 sample_idx=i,
                 output_path=str(output_path / f"{model_name}_explanation_{i}.png")
