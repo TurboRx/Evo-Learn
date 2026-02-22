@@ -435,8 +435,8 @@ def run_automl(
                         proba = model.predict_proba(X_test)
                         if proba.shape[1] == 2:
                             y_proba = proba[:, 1]
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning("Failed to compute prediction probabilities via predict_proba: %s", e, exc_info=True)
                 metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
             case _:
                 metrics = _compute_regression_metrics(y_test, y_pred)
