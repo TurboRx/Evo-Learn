@@ -179,7 +179,7 @@ class ModelExplainer:
         plt.figure(figsize=(10, 8))
         shap.summary_plot(
             self.shap_values,
-            features=self._transformed_feature_names,
+            feature_names=getattr(self, "_transformed_feature_names", None),
             plot_type=plot_type,
             max_display=max_display,
             show=False
