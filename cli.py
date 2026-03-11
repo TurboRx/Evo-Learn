@@ -111,11 +111,17 @@ def train_model(args):
         config_path = args.config
         if overrides and not config_path:
             import tempfile
-            import os as temp_os
             import yaml
-            fd, overlay_path = tempfile.mkstemp(prefix='evo_cfg_', suffix='.yaml')
-            temp_os.close(fd)
-            Path(overlay_path).write_text(yaml.safe_dump(overrides))
+            # Use context manager with delete=False for better resource management
+            temp_file = tempfile.NamedTemporaryFile(
+                mode='w', prefix='evo_cfg_', suffix='.yaml', delete=False
+            )
+            try:
+                temp_file.write(yaml.safe_dump(overrides))
+                temp_file.flush()
+                overlay_path = temp_file.name
+            finally:
+                temp_file.close()
             config_path = overlay_path
 
         # Run AutoML
@@ -154,9 +160,9 @@ def train_model(args):
             logger.info(f"Visualizations saved to {out_dir}")
 
         return 0
-        
+
     except Exception as e:
-        logger.error(f"Training failed: {e}")
+        logger.error(f"Training failed: {e}", exc_info=True)
         return 1
     finally:
         # Clean up temporary config file
@@ -183,9 +189,9 @@ def predict_with_model(args):
         print(f"Predictions saved to: {args.output}")
         
         return 0
-        
+
     except Exception as e:
-        logger.error(f"Prediction failed: {e}")
+        logger.error(f"Prediction failed: {e}", exc_info=True)
         return 1
 
 def evaluate_model(args):
@@ -251,9 +257,9 @@ def evaluate_model(args):
         
         print(f"Evaluation report saved to: {report_file}")
         return 0
-        
+
     except Exception as e:
-        logger.error(f"Evaluation failed: {e}")
+        logger.error(f"Evaluation failed: {e}", exc_info=True)
         return 1
 
 def create_visualizations(args):

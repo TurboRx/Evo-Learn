@@ -40,24 +40,35 @@ def build_preprocessor(
         transformers.append(("num", Pipeline(steps=num_steps), numeric_cols))
 
     if handle_categoricals and categorical_cols:
-        cat_pipeline = Pipeline(
-            steps=[
-                ("imputer", SimpleImputer(strategy="most_frequent")),
-                (
-                    "encoder",
-                    OneHotEncoder(
-                        handle_unknown="ignore",
-                        sparse_output=False,
-                        max_categories=max_categorical_features,
+        # Filter out columns that are all NaN or have no valid values
+        valid_cat_cols = [
+            col for col in categorical_cols
+            if not X[col].isna().all() and X[col].nunique(dropna=True) > 0
+        ]
+
+        if valid_cat_cols:
+            cat_pipeline = Pipeline(
+                steps=[
+                    ("imputer", SimpleImputer(strategy="most_frequent")),
+                    (
+                        "encoder",
+                        OneHotEncoder(
+                            handle_unknown="ignore",
+                            sparse_output=False,
+                            max_categories=max_categorical_features,
+                        ),
                     ),
-                ),
-            ]
-        )
-        transformers.append(("cat", cat_pipeline, categorical_cols))
-        logger.info(
-            f"Encoding {len(categorical_cols)} categorical columns "
-            f"(max {max_categorical_features} categories each)"
-        )
+                ]
+            )
+            transformers.append(("cat", cat_pipeline, valid_cat_cols))
+            logger.info(
+                f"Encoding {len(valid_cat_cols)} categorical columns "
+                f"(max {max_categorical_features} categories each)"
+            )
+        elif categorical_cols:
+            logger.warning(
+                f"Found {len(categorical_cols)} categorical columns, but all are empty or have no valid values. Skipping."
+            )
 
     if not transformers:
         raise ValueError(
@@ -68,13 +79,16 @@ def build_preprocessor(
     preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
     preprocessor.fit(X)
 
-    feature_names_out: list[str] | None = []
+    feature_names_out: list[str] | None = None
     try:
-        feature_names_out += numeric_cols
-        if handle_categoricals and categorical_cols:
+        feature_names_out = numeric_cols.copy()
+        if handle_categoricals and "cat" in preprocessor.named_transformers_:
             ohe = preprocessor.named_transformers_["cat"].named_steps["encoder"]
-            cats = ohe.get_feature_names_out(categorical_cols).tolist()
-            feature_names_out += cats
+            # Use the valid_cat_cols that were actually processed
+            cat_cols_used = [t[2] for t in transformers if t[0] == "cat"]
+            if cat_cols_used:
+                cats = ohe.get_feature_names_out(cat_cols_used[0]).tolist()
+                feature_names_out += cats
     except Exception as e:
         logger.warning(f"Feature name extraction failed: {e}")
         feature_names_out = None
