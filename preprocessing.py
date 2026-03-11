@@ -68,9 +68,9 @@ def build_preprocessor(
     preprocessor = ColumnTransformer(transformers=transformers, remainder="drop")
     preprocessor.fit(X)
 
-    feature_names_out: list[str] | None = []
+    feature_names_out: list[str] | None = None
     try:
-        feature_names_out += numeric_cols
+        feature_names_out = numeric_cols.copy()
         if handle_categoricals and categorical_cols:
             ohe = preprocessor.named_transformers_["cat"].named_steps["encoder"]
             cats = ohe.get_feature_names_out(categorical_cols).tolist()

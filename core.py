@@ -124,7 +124,10 @@ def split_data(
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size, random_state=random_state, stratify=strat
         )
-        logger.info(f"Split: train={X_train.shape}, test={X_test.shape}")
+        if hasattr(X_train, "shape") and hasattr(X_test, "shape"):
+            logger.info(f"Split: train={X_train.shape}, test={X_test.shape}")
+        else:
+            logger.info(f"Split: train={len(X_train)} samples, test={len(X_test)} samples")
         return X_train, X_test, y_train, y_test
 
     except ValueError as e:
@@ -189,9 +192,13 @@ def validate_data_for_training(
         class_counts = data[target_column].value_counts()
         min_class_count = class_counts.min()
         max_class_count = class_counts.max()
-        imbalance_ratio = (
-            max_class_count / min_class_count if min_class_count > 0 else float("inf")
-        )
+
+        if min_class_count == 0:
+            raise ValueError(
+                f"At least one class has 0 samples. Distribution: {class_counts.to_dict()}"
+            )
+
+        imbalance_ratio = max_class_count / min_class_count
 
         if imbalance_ratio > 10:
             logger.warning(f"Severe class imbalance: {imbalance_ratio:.1f}:1")
@@ -218,57 +225,38 @@ def _compute_classification_metrics(
     y_proba: np.ndarray | None = None,
 ) -> dict[str, float]:
     """Compute classification metrics."""
-    try:
-        metrics = {
-            "accuracy": float(accuracy_score(y_true, y_pred)),
-            "precision": float(
-                precision_score(y_true, y_pred, average="weighted", zero_division=0)
-            ),
-            "recall": float(
-                recall_score(y_true, y_pred, average="weighted", zero_division=0)
-            ),
-            "f1_score": float(
-                f1_score(y_true, y_pred, average="weighted", zero_division=0)
-            ),
-        }
+    metrics = {
+        "accuracy": float(accuracy_score(y_true, y_pred)),
+        "precision": float(
+            precision_score(y_true, y_pred, average="weighted", zero_division=0)
+        ),
+        "recall": float(
+            recall_score(y_true, y_pred, average="weighted", zero_division=0)
+        ),
+        "f1_score": float(
+            f1_score(y_true, y_pred, average="weighted", zero_division=0)
+        ),
+    }
 
-        if y_proba is not None and len(np.unique(y_true)) == 2:
-            try:
-                metrics["roc_auc"] = float(roc_auc_score(y_true, y_proba))
-            except (ValueError, TypeError) as e:
-                logger.warning(f"ROC AUC failed: {e}")
+    if y_proba is not None and len(np.unique(y_true)) == 2:
+        try:
+            metrics["roc_auc"] = float(roc_auc_score(y_true, y_proba))
+        except (ValueError, TypeError) as e:
+            logger.warning(f"ROC AUC failed: {e}")
 
-        return metrics
-
-    except Exception as e:
-        logger.error(f"Metrics error: {e}")
-        return {
-            "accuracy": float(accuracy_score(y_true, y_pred)),
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1_score": 0.0,
-        }
+    return metrics
 
 
 def _compute_regression_metrics(
     y_true: np.ndarray | pd.Series, y_pred: np.ndarray | pd.Series
 ) -> dict[str, float]:
     """Compute regression metrics."""
-    try:
-        return {
-            "mse": float(mean_squared_error(y_true, y_pred)),
-            "rmse": float(np.sqrt(mean_squared_error(y_true, y_pred))),
-            "mae": float(mean_absolute_error(y_true, y_pred)),
-            "r2": float(r2_score(y_true, y_pred)),
-        }
-    except Exception as e:
-        logger.error(f"Metrics error: {e}")
-        return {
-            "mse": float("inf"),
-            "rmse": float("inf"),
-            "mae": float("inf"),
-            "r2": -float("inf"),
-        }
+    return {
+        "mse": float(mean_squared_error(y_true, y_pred)),
+        "rmse": float(np.sqrt(mean_squared_error(y_true, y_pred))),
+        "mae": float(mean_absolute_error(y_true, y_pred)),
+        "r2": float(r2_score(y_true, y_pred)),
+    }
 
 
 def run_automl(
@@ -350,7 +338,12 @@ def run_automl(
                 case "classification":
                     y_proba = None
                     if hasattr(model, "predict_proba"):
-                        y_proba = model.predict_proba(X_test)[:, 1]
+                        try:
+                            proba = model.predict_proba(X_test)
+                            if proba.shape[1] == 2:
+                                y_proba = proba[:, 1]
+                        except Exception as e:
+                            logger.warning(f"Failed to compute prediction probabilities: {e}")
                     metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
                 case _:
                     metrics = _compute_regression_metrics(y_test, y_pred)
@@ -561,7 +554,15 @@ def predict(
     if isinstance(data, (str, Path)):
         data = load_data(data)
 
-    X = data.drop(columns=[target_column]) if target_column else data
+    if target_column:
+        if target_column not in data.columns:
+            raise KeyError(
+                f"Target column '{target_column}' not found in data. "
+                f"Available columns: {list(data.columns)}"
+            )
+        X = data.drop(columns=[target_column])
+    else:
+        X = data
 
     try:
         predictions = model.predict(X)
