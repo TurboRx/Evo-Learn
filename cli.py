@@ -160,9 +160,9 @@ def train_model(args):
             logger.info(f"Visualizations saved to {out_dir}")
 
         return 0
-        
+
     except Exception as e:
-        logger.error(f"Training failed: {e}")
+        logger.error(f"Training failed: {e}", exc_info=True)
         return 1
     finally:
         # Clean up temporary config file
@@ -189,9 +189,9 @@ def predict_with_model(args):
         print(f"Predictions saved to: {args.output}")
         
         return 0
-        
+
     except Exception as e:
-        logger.error(f"Prediction failed: {e}")
+        logger.error(f"Prediction failed: {e}", exc_info=True)
         return 1
 
 def evaluate_model(args):
@@ -257,9 +257,9 @@ def evaluate_model(args):
         
         print(f"Evaluation report saved to: {report_file}")
         return 0
-        
+
     except Exception as e:
-        logger.error(f"Evaluation failed: {e}")
+        logger.error(f"Evaluation failed: {e}", exc_info=True)
         return 1
 
 def create_visualizations(args):
