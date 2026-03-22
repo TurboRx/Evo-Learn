@@ -5,7 +5,7 @@
 ![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Production-ready AutoML toolkit built on TPOT**
+**AutoML toolkit built on TPOT**
 
 [Installation](#installation) • [Quick Start](#quick-start) • [Configuration](#configuration)
 
