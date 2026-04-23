@@ -35,7 +35,7 @@ shap>=0.44.0
 # Testing (dev)
 pytest>=7.0.0
 pytest-cov>=4.0.0
-pytest-xdist>=3.0.0
+pytest-xdist>=3.8.0
 
 # Code quality (dev)
 black>=23.0.0
