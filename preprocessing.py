@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -42,7 +43,8 @@ def build_preprocessor(
     if handle_categoricals and categorical_cols:
         # Filter out columns that are all NaN or have no valid values
         valid_cat_cols = [
-            col for col in categorical_cols
+            col
+            for col in categorical_cols
             if not X[col].isna().all() and X[col].nunique(dropna=True) > 0
         ]
 

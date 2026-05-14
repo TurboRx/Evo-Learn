@@ -107,3 +107,8 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90", "I"]
+[tool.ruff.format]
+quote-style = "double"

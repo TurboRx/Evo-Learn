@@ -127,12 +127,16 @@ def split_data(
         if hasattr(X_train, "shape") and hasattr(X_test, "shape"):
             logger.info(f"Split: train={X_train.shape}, test={X_test.shape}")
         else:
-            logger.info(f"Split: train={len(X_train)} samples, test={len(X_test)} samples")
+            logger.info(
+                f"Split: train={len(X_train)} samples, test={len(X_test)} samples"
+            )
         return X_train, X_test, y_train, y_test
 
     except ValueError as e:
         if strat is not None:
-            logger.warning(f"Stratified split failed ({e}), retrying without stratification")
+            logger.warning(
+                f"Stratified split failed ({e}), retrying without stratification"
+            )
             X_train, X_test, y_train, y_test = train_test_split(
                 X, y, test_size=test_size, random_state=random_state, stratify=None
             )
@@ -206,7 +210,9 @@ def validate_data_for_training(
 
     all_nan_cols = data.columns[data.isna().all()].tolist()
     if all_nan_cols:
-        logger.warning(f"{len(all_nan_cols)} columns with all NaN values: {all_nan_cols[:5]}")
+        logger.warning(
+            f"{len(all_nan_cols)} columns with all NaN values: {all_nan_cols[:5]}"
+        )
 
     constant_cols = []
     for col in data.columns:
@@ -343,7 +349,9 @@ def run_automl(
                             if proba.shape[1] == 2:
                                 y_proba = proba[:, 1]
                         except Exception as e:
-                            logger.warning(f"Failed to compute prediction probabilities: {e}")
+                            logger.warning(
+                                f"Failed to compute prediction probabilities: {e}"
+                            )
                     metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
                 case _:
                     metrics = _compute_regression_metrics(y_test, y_pred)
@@ -429,7 +437,11 @@ def run_automl(
                         if proba.shape[1] == 2:
                             y_proba = proba[:, 1]
                     except Exception as e:
-                        logger.warning("Failed to compute prediction probabilities via predict_proba: %s", e, exc_info=True)
+                        logger.warning(
+                            "Failed to compute prediction probabilities via predict_proba: %s",
+                            e,
+                            exc_info=True,
+                        )
                 metrics = _compute_classification_metrics(y_test, y_pred, y_proba)
             case _:
                 metrics = _compute_regression_metrics(y_test, y_pred)

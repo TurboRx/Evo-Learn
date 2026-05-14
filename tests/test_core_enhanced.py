@@ -1,9 +1,8 @@
 """Enhanced unit tests for core functionality without requiring TPOT."""
-import pytest
-import pandas as pd
+
 import numpy as np
-from pathlib import Path
-import tempfile
+import pandas as pd
+import pytest
 
 
 class TestLoadData:
@@ -14,11 +13,13 @@ class TestLoadData:
         from core import load_data
 
         # Create valid CSV
-        data = pd.DataFrame({
-            'feature1': [1, 2, 3, 4, 5],
-            'feature2': [10, 20, 30, 40, 50],
-            'target': [0, 1, 0, 1, 0]
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": [1, 2, 3, 4, 5],
+                "feature2": [10, 20, 30, 40, 50],
+                "target": [0, 1, 0, 1, 0],
+            }
+        )
 
         csv_path = tmp_path / "test.csv"
         data.to_csv(csv_path, index=False)
@@ -26,17 +27,14 @@ class TestLoadData:
         loaded = load_data(csv_path)
 
         assert len(loaded) == 5
-        assert list(loaded.columns) == ['feature1', 'feature2', 'target']
-        assert loaded['feature1'].tolist() == [1, 2, 3, 4, 5]
+        assert list(loaded.columns) == ["feature1", "feature2", "target"]
+        assert loaded["feature1"].tolist() == [1, 2, 3, 4, 5]
 
     def test_load_data_with_size_check(self, tmp_path):
         """Test that file size is checked."""
         from core import load_data
 
-        data = pd.DataFrame({
-            'x': range(100),
-            'y': range(100)
-        })
+        data = pd.DataFrame({"x": range(100), "y": range(100)})
 
         csv_path = tmp_path / "data.csv"
         data.to_csv(csv_path, index=False)
@@ -71,7 +69,7 @@ class TestLoadData:
         from core import load_data
 
         csv_path = tmp_path / "single.csv"
-        pd.DataFrame({'only_col': [1, 2, 3]}).to_csv(csv_path, index=False)
+        pd.DataFrame({"only_col": [1, 2, 3]}).to_csv(csv_path, index=False)
 
         with pytest.raises(ValueError, match="at least 2 columns"):
             load_data(csv_path)
@@ -84,66 +82,51 @@ class TestValidateDataForTraining:
         """Test validation passes for valid classification data."""
         from core import validate_data_for_training
 
-        data = pd.DataFrame({
-            'x': [1, 2, 3, 4, 5, 6],
-            'target': [0, 1, 0, 1, 0, 1]
-        })
+        data = pd.DataFrame({"x": [1, 2, 3, 4, 5, 6], "target": [0, 1, 0, 1, 0, 1]})
 
         # Should not raise
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
     def test_valid_regression(self):
         """Test validation passes for valid regression data."""
         from core import validate_data_for_training
 
-        data = pd.DataFrame({
-            'x': [1, 2, 3, 4, 5],
-            'target': [1.5, 2.3, 3.7, 4.1, 5.9]
-        })
+        data = pd.DataFrame({"x": [1, 2, 3, 4, 5], "target": [1.5, 2.3, 3.7, 4.1, 5.9]})
 
         # Should not raise
-        validate_data_for_training(data, 'target', 'regression')
+        validate_data_for_training(data, "target", "regression")
 
     def test_nan_in_target(self):
         """Test validation fails when target has NaN."""
         from core import validate_data_for_training
 
-        data = pd.DataFrame({
-            'x': [1, 2, 3, 4, 5],
-            'target': [0, 1, np.nan, 0, 1]
-        })
+        data = pd.DataFrame({"x": [1, 2, 3, 4, 5], "target": [0, 1, np.nan, 0, 1]})
 
         with pytest.raises(ValueError, match="NaN"):
-            validate_data_for_training(data, 'target', 'classification')
+            validate_data_for_training(data, "target", "classification")
 
     def test_single_class_classification(self):
         """Test validation fails for single class."""
         from core import validate_data_for_training
 
-        data = pd.DataFrame({
-            'x': [1, 2, 3, 4, 5],
-            'target': [0, 0, 0, 0, 0]
-        })
+        data = pd.DataFrame({"x": [1, 2, 3, 4, 5], "target": [0, 0, 0, 0, 0]})
 
         with pytest.raises(ValueError, match="at least 2 classes"):
-            validate_data_for_training(data, 'target', 'classification')
+            validate_data_for_training(data, "target", "classification")
 
     def test_class_imbalance_warning(self, caplog):
         """Test warning for severe class imbalance."""
-        from core import validate_data_for_training
         import logging
+
+        from core import validate_data_for_training
 
         caplog.set_level(logging.WARNING)
 
-        data = pd.DataFrame({
-            'x': range(100),
-            'target': [0] * 95 + [1] * 5
-        })
+        data = pd.DataFrame({"x": range(100), "target": [0] * 95 + [1] * 5})
 
-        validate_data_for_training(data, 'target', 'classification')
+        validate_data_for_training(data, "target", "classification")
 
-        assert any('imbalance' in record.message.lower()
-                   for record in caplog.records)
+        assert any("imbalance" in record.message.lower() for record in caplog.records)
 
 
 class TestSplitData:
@@ -153,34 +136,29 @@ class TestSplitData:
         """Test basic data splitting."""
         from core import split_data
 
-        data = pd.DataFrame({
-            'x1': range(100),
-            'x2': range(100, 200),
-            'target': [0, 1] * 50
-        })
+        data = pd.DataFrame(
+            {"x1": range(100), "x2": range(100, 200), "target": [0, 1] * 50}
+        )
 
         X_train, X_test, y_train, y_test = split_data(
-            data, 'target', test_size=0.2, random_state=42
+            data, "target", test_size=0.2, random_state=42
         )
 
         assert len(X_train) == 80
         assert len(X_test) == 20
         assert len(y_train) == 80
         assert len(y_test) == 20
-        assert 'target' not in X_train.columns
-        assert 'target' not in X_test.columns
+        assert "target" not in X_train.columns
+        assert "target" not in X_test.columns
 
     def test_stratified_split_classification(self):
         """Test stratified split for classification."""
         from core import split_data
 
-        data = pd.DataFrame({
-            'x': range(100),
-            'target': [0] * 80 + [1] * 20
-        })
+        data = pd.DataFrame({"x": range(100), "target": [0] * 80 + [1] * 20})
 
         X_train, X_test, y_train, y_test = split_data(
-            data, 'target', test_size=0.2, task='classification', random_state=42
+            data, "target", test_size=0.2, task="classification", random_state=42
         )
 
         # Check that class distribution is roughly maintained
@@ -195,25 +173,19 @@ class TestSplitData:
         """Test error when target column missing."""
         from core import split_data
 
-        data = pd.DataFrame({
-            'x': [1, 2, 3, 4, 5],
-            'y': [10, 20, 30, 40, 50]
-        })
+        data = pd.DataFrame({"x": [1, 2, 3, 4, 5], "y": [10, 20, 30, 40, 50]})
 
         with pytest.raises(KeyError, match="not found"):
-            split_data(data, 'missing_target', test_size=0.2)
+            split_data(data, "missing_target", test_size=0.2)
 
     def test_insufficient_data(self):
         """Test error with too few samples."""
         from core import split_data
 
-        data = pd.DataFrame({
-            'x': [1, 2],
-            'target': [0, 1]
-        })
+        data = pd.DataFrame({"x": [1, 2], "target": [0, 1]})
 
         with pytest.raises(ValueError, match="Insufficient"):
-            split_data(data, 'target', test_size=0.5)
+            split_data(data, "target", test_size=0.5)
 
 
 class TestMetricsComputation:
@@ -228,13 +200,13 @@ class TestMetricsComputation:
 
         metrics = _compute_classification_metrics(y_true, y_pred)
 
-        assert 'accuracy' in metrics
-        assert 'precision' in metrics
-        assert 'recall' in metrics
-        assert 'f1_score' in metrics
+        assert "accuracy" in metrics
+        assert "precision" in metrics
+        assert "recall" in metrics
+        assert "f1_score" in metrics
 
         # Check accuracy manually: 3 correct out of 4 = 0.75
-        assert metrics['accuracy'] == 0.75
+        assert metrics["accuracy"] == 0.75
 
     def test_classification_metrics_with_proba(self):
         """Test classification metrics with probabilities."""
@@ -247,8 +219,8 @@ class TestMetricsComputation:
         metrics = _compute_classification_metrics(y_true, y_pred, y_proba)
 
         # Should include ROC AUC for binary classification
-        assert 'roc_auc' in metrics
-        assert 0 <= metrics['roc_auc'] <= 1
+        assert "roc_auc" in metrics
+        assert 0 <= metrics["roc_auc"] <= 1
 
     def test_regression_metrics_basic(self):
         """Test basic regression metrics computation."""
@@ -259,13 +231,13 @@ class TestMetricsComputation:
 
         metrics = _compute_regression_metrics(y_true, y_pred)
 
-        assert 'mse' in metrics
-        assert 'rmse' in metrics
-        assert 'mae' in metrics
-        assert 'r2' in metrics
+        assert "mse" in metrics
+        assert "rmse" in metrics
+        assert "mae" in metrics
+        assert "r2" in metrics
 
         # RMSE should be sqrt of MSE
-        assert np.isclose(metrics['rmse'], np.sqrt(metrics['mse']))
+        assert np.isclose(metrics["rmse"], np.sqrt(metrics["mse"]))
 
     def test_regression_metrics_perfect(self):
         """Test regression metrics with perfect predictions."""
@@ -276,10 +248,10 @@ class TestMetricsComputation:
 
         metrics = _compute_regression_metrics(y_true, y_pred)
 
-        assert np.isclose(metrics['mse'], 0.0)
-        assert np.isclose(metrics['rmse'], 0.0)
-        assert np.isclose(metrics['mae'], 0.0)
-        assert np.isclose(metrics['r2'], 1.0)
+        assert np.isclose(metrics["mse"], 0.0)
+        assert np.isclose(metrics["rmse"], 0.0)
+        assert np.isclose(metrics["mae"], 0.0)
+        assert np.isclose(metrics["r2"], 1.0)
 
 
 class TestLoadModel:
@@ -287,9 +259,10 @@ class TestLoadModel:
 
     def test_load_joblib_model(self, tmp_path):
         """Test loading a model saved with joblib."""
-        from core import load_model
-        from sklearn.linear_model import LogisticRegression
         import joblib
+        from sklearn.linear_model import LogisticRegression
+
+        from core import load_model
 
         # Create and save model
         model = LogisticRegression()
@@ -314,9 +287,9 @@ class TestPredict:
 
     def test_predict_with_dataframe(self, tmp_path):
         """Test prediction with DataFrame input."""
-        from core import predict
         from sklearn.linear_model import LogisticRegression
-        import joblib
+
+        from core import predict
 
         # Create and fit a simple model
         X_train = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
@@ -325,10 +298,7 @@ class TestPredict:
         model.fit(X_train, y_train)
 
         # Create test data
-        test_data = pd.DataFrame({
-            'feature1': [2, 4, 6],
-            'feature2': [3, 5, 7]
-        })
+        test_data = pd.DataFrame({"feature1": [2, 4, 6], "feature2": [3, 5, 7]})
 
         # Predict
         predictions = predict(model, test_data)
@@ -338,8 +308,9 @@ class TestPredict:
 
     def test_predict_with_csv_path(self, tmp_path):
         """Test prediction with CSV file path."""
-        from core import predict
         from sklearn.linear_model import LogisticRegression
+
+        from core import predict
 
         # Create and fit model
         X_train = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
@@ -348,10 +319,7 @@ class TestPredict:
         model.fit(X_train, y_train)
 
         # Create test CSV
-        test_data = pd.DataFrame({
-            'feature1': [2, 4, 6],
-            'feature2': [3, 5, 7]
-        })
+        test_data = pd.DataFrame({"feature1": [2, 4, 6], "feature2": [3, 5, 7]})
         csv_path = tmp_path / "test.csv"
         test_data.to_csv(csv_path, index=False)
 
@@ -362,8 +330,9 @@ class TestPredict:
 
     def test_predict_excludes_target_column(self, tmp_path):
         """Test that target column is excluded from prediction."""
-        from core import predict
         from sklearn.linear_model import LogisticRegression
+
+        from core import predict
 
         # Create and fit model
         X_train = np.array([[1, 2], [3, 4]])
@@ -372,14 +341,16 @@ class TestPredict:
         model.fit(X_train, y_train)
 
         # Create test data with target column
-        test_data = pd.DataFrame({
-            'feature1': [2, 4],
-            'feature2': [3, 5],
-            'target': [0, 1]  # Should be ignored
-        })
+        test_data = pd.DataFrame(
+            {
+                "feature1": [2, 4],
+                "feature2": [3, 5],
+                "target": [0, 1],  # Should be ignored
+            }
+        )
 
         # Predict with target column specified
-        predictions = predict(model, test_data, target_column='target')
+        predictions = predict(model, test_data, target_column="target")
 
         assert len(predictions) == 2
 
@@ -401,9 +372,9 @@ generations: 10
 
         config = _load_config(str(config_path))
 
-        assert config['test_size'] == 0.3
-        assert config['random_state'] == 123
-        assert config['generations'] == 10
+        assert config["test_size"] == 0.3
+        assert config["random_state"] == 123
+        assert config["generations"] == 10
 
     def test_load_nonexistent_config(self):
         """Test loading nonexistent config returns empty dict."""

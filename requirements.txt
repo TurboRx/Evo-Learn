@@ -38,9 +38,7 @@ pytest-cov>=4.0.0
 pytest-xdist>=3.8.0
 
 # Code quality (dev)
-black>=23.0.0
-flake8>=6.0.0
-isort>=8.0.1
+ruff==0.5.0
 mypy>=1.0.0
 pre-commit>=3.0.0
 

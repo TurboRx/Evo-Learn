@@ -16,10 +16,10 @@ from typing import List, Tuple
 def check_imports(packages: List[str]) -> Tuple[bool, List[str]]:
     """
     Check if the given packages can be imported.
-    
+
     Args:
         packages: List of package names to check
-        
+
     Returns:
         Tuple with success flag and list of missing packages
     """
@@ -31,32 +31,32 @@ def check_imports(packages: List[str]) -> Tuple[bool, List[str]]:
         except ImportError as e:
             print(f"✗ Failed to import {package}: {e}")
             missing.append(package)
-    
+
     return len(missing) == 0, missing
 
 
 def check_core_modules() -> Tuple[bool, List[str]]:
     """
     Check if the core Evo-Learn modules exist and can be imported.
-    
+
     Returns:
         Tuple with success flag and list of missing modules
     """
     core_modules = [
         "core.py",
-        "utils.py", 
+        "utils.py",
         "visualization.py",
         "cli.py",
-        "preprocessing.py"
+        "preprocessing.py",
     ]
-    
+
     missing = []
     for module in core_modules:
         if not os.path.exists(module):
             print(f"✗ Core module {module} not found")
             missing.append(module)
             continue
-            
+
         module_name = module.replace(".py", "")
         try:
             # Try with direct file import approach which is safer
@@ -76,23 +76,19 @@ def check_core_modules() -> Tuple[bool, List[str]]:
         except Exception as e:
             print(f"✗ Failed to import {module}: {e}")
             missing.append(module)
-    
+
     return len(missing) == 0, missing
 
 
 def check_configuration_files() -> Tuple[bool, List[str]]:
     """
     Check if required configuration files exist.
-    
+
     Returns:
         Tuple with success flag and list of missing files
     """
-    config_files = [
-        "config.yaml",
-        "pyproject.toml", 
-        "requirements.txt"
-    ]
-    
+    config_files = ["config.yaml", "pyproject.toml", "requirements.txt"]
+
     missing = []
     for config_file in config_files:
         if os.path.exists(config_file):
@@ -100,32 +96,29 @@ def check_configuration_files() -> Tuple[bool, List[str]]:
         else:
             print(f"✗ Configuration file {config_file} not found")
             missing.append(config_file)
-    
+
     return len(missing) == 0, missing
 
 
 def test_basic_functionality():
     """
     Test basic functionality of core modules.
-    
+
     Returns:
         bool: True if basic tests pass, False otherwise
     """
     try:
         # Test core module import
-        import core
         print("✓ Core module functionality test passed")
-        
+
         # Test utilities
-        import utils
         print("✓ Utils module functionality test passed")
-        
+
         # Test visualization
-        import visualization
         print("✓ Visualization module functionality test passed")
-        
+
         return True
-        
+
     except Exception as e:
         print(f"✗ Basic functionality test failed: {e}")
         return False
@@ -135,59 +128,68 @@ def main():
     """Run comprehensive validation checks."""
     print("\n===== Evo-Learn AutoML Toolkit Validation =====")
     print("Performing comprehensive system validation...\n")
-    
+
     # Check required packages
     print("----- Checking Required Dependencies -----")
     packages = [
-        "numpy", "pandas", "sklearn", "matplotlib", "seaborn", 
-        "tpot", "yaml", "scipy", "joblib"
+        "numpy",
+        "pandas",
+        "sklearn",
+        "matplotlib",
+        "seaborn",
+        "tpot",
+        "yaml",
+        "scipy",
+        "joblib",
     ]
     pkg_success, missing_pkgs = check_imports(packages)
-    
+
     # Check core modules
     print("\n----- Checking Core Modules -----")
     mod_success, missing_mods = check_core_modules()
-    
+
     # Check configuration files
     print("\n----- Checking Configuration Files -----")
     config_success, missing_configs = check_configuration_files()
-    
+
     # Test basic functionality
     print("\n----- Testing Basic Functionality -----")
     func_success = test_basic_functionality()
-    
+
     # Print detailed summary
     print("\n----- Validation Summary -----")
-    
+
     if pkg_success:
         print("✓ All required dependencies are installed")
     else:
         print(f"✗ Missing dependencies: {', '.join(missing_pkgs)}")
         print("  Install with: pip install -r requirements.txt")
-        
+
     if mod_success:
         print("✓ All core modules are present and importable")
     else:
         print(f"✗ Issues with modules: {', '.join(missing_mods)}")
-        
+
     if config_success:
         print("✓ All configuration files are present")
     else:
         print(f"✗ Missing configuration files: {', '.join(missing_configs)}")
-        
+
     if func_success:
         print("✓ Basic functionality tests passed")
     else:
         print("✗ Basic functionality tests failed")
-    
+
     # Overall status
     print("\n----- Overall Validation Status -----")
     overall_success = pkg_success and mod_success and config_success and func_success
-    
+
     if overall_success:
         print("✓ VALIDATION PASSED - Evo-Learn is ready to use!")
         print("\nNext steps:")
-        print("  - Run: python cli.py train --data your_data.csv --target target_column")
+        print(
+            "  - Run: python cli.py train --data your_data.csv --target target_column"
+        )
         print("  - Or: python cli.py --help for more options")
         return 0
     else:

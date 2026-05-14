@@ -16,10 +16,10 @@ from typing import List, Tuple
 def check_imports(packages: List[str]) -> Tuple[bool, List[str]]:
     """
     Check if the given packages can be imported.
-    
+
     Args:
         packages: List of package names to check
-        
+
     Returns:
         Tuple with success flag and list of missing packages
     """
@@ -31,14 +31,14 @@ def check_imports(packages: List[str]) -> Tuple[bool, List[str]]:
         except ImportError as e:
             print(f"✗ Failed to import {package}: {e}")
             missing.append(package)
-    
+
     return len(missing) == 0, missing
 
 
 def check_core_modules() -> Tuple[bool, List[str]]:
     """
     Check if the core Evo-Learn modules exist and can be imported.
-    
+
     Returns:
         Tuple with success flag and list of missing modules
     """
@@ -48,16 +48,16 @@ def check_core_modules() -> Tuple[bool, List[str]]:
         "visualization.py",
         "cli.py",
         "preprocessing.py",
-        "validate.py"
+        "validate.py",
     ]
-    
+
     missing = []
     for module in core_modules:
         if not os.path.exists(module):
             print(f"✗ Core module {module} not found")
             missing.append(module)
             continue
-            
+
         module_name = module.replace(".py", "")
         try:
             # Try with direct file import approach which is safer
@@ -77,35 +77,35 @@ def check_core_modules() -> Tuple[bool, List[str]]:
         except Exception as e:
             print(f"✗ Failed to import {module}: {e}")
             missing.append(module)
-    
+
     return len(missing) == 0, missing
 
 
 def main():
     """Run installation checks"""
     print("\n===== Evo-Learn Installation Check =====\n")
-    
+
     # Check required packages
     print("\n----- Checking Required Packages -----")
     packages = ["numpy", "pandas", "sklearn", "matplotlib", "seaborn", "tpot"]
     pkg_success, missing_pkgs = check_imports(packages)
-    
+
     # Check core modules
     print("\n----- Checking Core Modules -----")
     mod_success, missing_mods = check_core_modules()
-    
+
     # Print summary
     print("\n----- Verification Summary -----")
     if pkg_success:
         print("✓ All required packages are installed")
     else:
         print(f"✗ Missing packages: {', '.join(missing_pkgs)}")
-        
+
     if mod_success:
         print("✓ All core modules are present and importable")
     else:
         print(f"✗ Issues with modules: {', '.join(missing_mods)}")
-    
+
     # Overall status
     print("\n----- Overall Status -----")
     if pkg_success and mod_success:
