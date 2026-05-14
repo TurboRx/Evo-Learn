@@ -170,7 +170,7 @@ def log_experiment_end(
     logger.info("=" * 60)
     logger.info("Experiment Completed Successfully")
     logger.info("=" * 60)
-    logger.info(f"Duration: {duration:.2f} seconds ({duration/60:.2f} minutes)")
+    logger.info(f"Duration: {duration:.2f} seconds ({duration / 60:.2f} minutes)")
     logger.info("Metrics:")
     for metric_name, metric_value in metrics.items():
         try:

@@ -92,7 +92,7 @@ class EvoLearnConfig:
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if self.log_level.upper() not in valid_levels:
             raise ValueError(
-                f"log_level must be one of {valid_levels}, " f"got '{self.log_level}'"
+                f"log_level must be one of {valid_levels}, got '{self.log_level}'"
             )
 
     @classmethod

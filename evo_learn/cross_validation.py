@@ -178,8 +178,7 @@ def nested_cross_validation(
         Dict containing nested CV results
     """
     logger.info(
-        f"Starting nested cross-validation: "
-        f"outer={outer_folds}, inner={inner_folds}"
+        f"Starting nested cross-validation: outer={outer_folds}, inner={inner_folds}"
     )
 
     # Outer loop for performance estimation
