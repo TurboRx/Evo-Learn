@@ -1,11 +1,10 @@
 """Tests for the new data validation functionality."""
 
-import pytest
-import pandas as pd
 import numpy as np
-from core import validate_data_for_training, load_data
-import tempfile
-from pathlib import Path
+import pandas as pd
+import pytest
+
+from core import load_data, validate_data_for_training
 
 
 class TestDataValidation:
@@ -211,7 +210,6 @@ class TestFileLoading:
 
     def test_load_data_size_limit(self, tmp_path):
         """Test that file size limit is enforced."""
-        from core import load_data
 
         # Create a small CSV file
         csv_path = tmp_path / "small_data.csv"
@@ -224,7 +222,6 @@ class TestFileLoading:
 
     def test_load_data_exceeds_size_limit(self, tmp_path):
         """Test that oversized files are rejected."""
-        from core import load_data
 
         # Create a CSV file
         csv_path = tmp_path / "large_data.csv"
@@ -244,7 +241,6 @@ class TestFileLoading:
 
     def test_load_data_custom_size_limit(self, tmp_path):
         """Test that custom size limits work."""
-        from core import load_data
 
         csv_path = tmp_path / "data.csv"
         data = pd.DataFrame({"feature1": list(range(100)), "target": [0, 1] * 50})
@@ -256,14 +252,12 @@ class TestFileLoading:
 
     def test_load_data_nonexistent_file(self):
         """Test error handling for nonexistent files."""
-        from core import load_data
 
         with pytest.raises(FileNotFoundError, match="not found"):
             load_data("/nonexistent/path/data.csv")
 
     def test_load_data_empty_file(self, tmp_path):
         """Test error handling for empty CSV files."""
-        from core import load_data
 
         csv_path = tmp_path / "empty.csv"
         # Create empty CSV with just headers
@@ -274,7 +268,6 @@ class TestFileLoading:
 
     def test_load_data_insufficient_columns(self, tmp_path):
         """Test error handling for files with insufficient columns."""
-        from core import load_data
 
         csv_path = tmp_path / "single_column.csv"
         pd.DataFrame({"only_one_column": [1, 2, 3]}).to_csv(csv_path, index=False)
@@ -284,7 +277,6 @@ class TestFileLoading:
 
     def test_load_data_non_csv_extension(self, tmp_path, caplog):
         """Test warning for non-CSV file extensions."""
-        from core import load_data
         import logging
 
         caplog.set_level(logging.WARNING)
@@ -302,7 +294,6 @@ class TestFileLoading:
 
     def test_load_data_logs_file_size(self, tmp_path, caplog):
         """Test that file size is logged when loading."""
-        from core import load_data
         import logging
 
         # Enable logging capture
@@ -322,7 +313,6 @@ class TestFileLoading:
 
     def test_load_data_handles_mixed_types(self, tmp_path):
         """Test that load_data handles mixed data types correctly."""
-        from core import load_data
 
         csv_path = tmp_path / "mixed_types.csv"
         data = pd.DataFrame(
@@ -349,8 +339,8 @@ class TestModelSerialization:
 
     def test_model_save_load_roundtrip(self, tmp_path):
         """Test that models can be saved and loaded with joblib."""
-        from sklearn.linear_model import LogisticRegression
         import joblib
+        from sklearn.linear_model import LogisticRegression
 
         # Create and save a model
         model = LogisticRegression()
@@ -367,8 +357,8 @@ class TestModelSerialization:
 
     def test_model_save_with_compression(self, tmp_path):
         """Test that compression is applied when saving models."""
-        from sklearn.linear_model import Ridge
         import joblib
+        from sklearn.linear_model import Ridge
 
         model = Ridge()
         model_path = tmp_path / "compressed_model.pkl"
@@ -381,9 +371,10 @@ class TestModelSerialization:
 
     def test_load_model_function(self, tmp_path):
         """Test the load_model function from core."""
-        from core import load_model
-        from sklearn.linear_model import LogisticRegression
         import joblib
+        from sklearn.linear_model import LogisticRegression
+
+        from core import load_model
 
         # Create and save a model
         model = LogisticRegression()
@@ -405,9 +396,10 @@ class TestModelSerialization:
 
     def test_fitted_model_save_load(self, tmp_path):
         """Test saving and loading a fitted model with predictions."""
-        from sklearn.linear_model import LogisticRegression
-        from core import load_model
         import joblib
+        from sklearn.linear_model import LogisticRegression
+
+        from core import load_model
 
         # Create and fit a model
         X = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
@@ -429,10 +421,10 @@ class TestModelSerialization:
 
     def test_pipeline_serialization(self, tmp_path):
         """Test that full pipelines can be serialized."""
+        import joblib
+        from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import Pipeline
         from sklearn.preprocessing import StandardScaler
-        from sklearn.linear_model import LogisticRegression
-        import joblib
 
         # Create pipeline
         pipeline = Pipeline(

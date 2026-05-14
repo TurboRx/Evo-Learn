@@ -8,10 +8,10 @@ __version__ = "1.2.0"
 __author__ = "TurboRx"
 __email__ = "turborx@example.com"
 
+from .config import EvoLearnConfig, load_config
 from .core import load_model, predict, run_automl
 from .logging_utils import setup_logging
 from .preprocessing import build_preprocessor
-from .config import EvoLearnConfig, load_config
 
 __all__ = [
     "run_automl",

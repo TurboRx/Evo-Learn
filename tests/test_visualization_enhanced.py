@@ -1,16 +1,18 @@
 """Enhanced tests for visualization functionality."""
-import pytest
-import pandas as pd
-import numpy as np
+
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
 from visualization import (
-    save_roc_curve,
+    create_evaluation_dashboard,
+    plot_correlation_matrix,
+    plot_feature_distributions,
+    save_actual_vs_pred,
     save_pr_curve,
     save_residuals,
-    save_actual_vs_pred,
-    plot_feature_distributions,
-    plot_correlation_matrix,
-    create_evaluation_dashboard
+    save_roc_curve,
 )
 
 
@@ -195,14 +197,16 @@ class TestFeatureDistributions:
 
     def test_plot_feature_distributions_numeric(self, tmp_path):
         """Test feature distribution plots with numeric features."""
-        data = pd.DataFrame({
-            'feature1': np.random.randn(100),
-            'feature2': np.random.randn(100),
-            'target': [0, 1] * 50
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": np.random.randn(100),
+                "feature2": np.random.randn(100),
+                "target": [0, 1] * 50,
+            }
+        )
 
         output_dir = tmp_path / "distributions"
-        plot_feature_distributions(data, 'target', output_dir)
+        plot_feature_distributions(data, "target", output_dir)
 
         # Should create directory and plots
         assert output_dir.exists()
@@ -213,12 +217,12 @@ class TestFeatureDistributions:
     def test_plot_feature_distributions_many_features(self, tmp_path):
         """Test that only first 10 features are plotted."""
         # Create data with 15 numeric features
-        data_dict = {f'feature{i}': np.random.randn(50) for i in range(15)}
-        data_dict['target'] = [0, 1] * 25
+        data_dict = {f"feature{i}": np.random.randn(50) for i in range(15)}
+        data_dict["target"] = [0, 1] * 25
         data = pd.DataFrame(data_dict)
 
         output_dir = tmp_path / "many_features"
-        plot_feature_distributions(data, 'target', output_dir)
+        plot_feature_distributions(data, "target", output_dir)
 
         # Should create at most 10 plots
         plots = list(output_dir.glob("dist_*.png"))
@@ -226,27 +230,22 @@ class TestFeatureDistributions:
 
     def test_plot_feature_distributions_no_numeric(self, tmp_path):
         """Test feature distributions with no numeric features."""
-        data = pd.DataFrame({
-            'cat1': ['A', 'B'] * 25,
-            'cat2': ['X', 'Y'] * 25,
-            'target': [0, 1] * 25
-        })
+        data = pd.DataFrame(
+            {"cat1": ["A", "B"] * 25, "cat2": ["X", "Y"] * 25, "target": [0, 1] * 25}
+        )
 
         output_dir = tmp_path / "no_numeric"
-        plot_feature_distributions(data, 'target', output_dir)
+        plot_feature_distributions(data, "target", output_dir)
 
         # Should create directory but no plots
         assert output_dir.exists()
 
     def test_plot_feature_distributions_creates_directory(self, tmp_path):
         """Test that output directory is created if it doesn't exist."""
-        data = pd.DataFrame({
-            'feature1': np.random.randn(50),
-            'target': [0, 1] * 25
-        })
+        data = pd.DataFrame({"feature1": np.random.randn(50), "target": [0, 1] * 25})
 
         output_dir = tmp_path / "new_dir" / "nested"
-        plot_feature_distributions(data, 'target', output_dir)
+        plot_feature_distributions(data, "target", output_dir)
 
         assert output_dir.exists()
 
@@ -256,12 +255,14 @@ class TestCorrelationMatrix:
 
     def test_plot_correlation_matrix_numeric(self, tmp_path):
         """Test correlation matrix with numeric features."""
-        data = pd.DataFrame({
-            'feature1': np.random.randn(50),
-            'feature2': np.random.randn(50),
-            'feature3': np.random.randn(50),
-            'target': [0, 1] * 25
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": np.random.randn(50),
+                "feature2": np.random.randn(50),
+                "feature3": np.random.randn(50),
+                "target": [0, 1] * 25,
+            }
+        )
 
         output_path = tmp_path / "correlation.png"
         plot_correlation_matrix(data, output_path)
@@ -273,11 +274,13 @@ class TestCorrelationMatrix:
     def test_plot_correlation_matrix_high_correlation(self, tmp_path):
         """Test correlation matrix with highly correlated features."""
         x = np.random.randn(100)
-        data = pd.DataFrame({
-            'feature1': x,
-            'feature2': x + np.random.randn(100) * 0.1,  # Highly correlated
-            'feature3': np.random.randn(100)
-        })
+        data = pd.DataFrame(
+            {
+                "feature1": x,
+                "feature2": x + np.random.randn(100) * 0.1,  # Highly correlated
+                "feature3": np.random.randn(100),
+            }
+        )
 
         output_path = tmp_path / "high_corr.png"
         plot_correlation_matrix(data, output_path)
@@ -286,29 +289,23 @@ class TestCorrelationMatrix:
 
     def test_plot_correlation_matrix_single_numeric_column(self, tmp_path, caplog):
         """Test correlation matrix with only one numeric column."""
-        data = pd.DataFrame({
-            'feature1': np.random.randn(50),
-            'cat': ['A', 'B'] * 25
-        })
+        data = pd.DataFrame({"feature1": np.random.randn(50), "cat": ["A", "B"] * 25})
 
         output_path = tmp_path / "single_column_corr.png"
         plot_correlation_matrix(data, output_path)
 
         # Should log warning about insufficient columns
-        assert any('Not enough' in record.message for record in caplog.records)
+        assert any("Not enough" in record.message for record in caplog.records)
 
     def test_plot_correlation_matrix_no_numeric_columns(self, tmp_path, caplog):
         """Test correlation matrix with no numeric columns."""
-        data = pd.DataFrame({
-            'cat1': ['A', 'B'] * 25,
-            'cat2': ['X', 'Y'] * 25
-        })
+        data = pd.DataFrame({"cat1": ["A", "B"] * 25, "cat2": ["X", "Y"] * 25})
 
         output_path = tmp_path / "no_numeric_corr.png"
         plot_correlation_matrix(data, output_path)
 
         # Should log warning
-        assert any('Not enough' in record.message for record in caplog.records)
+        assert any("Not enough" in record.message for record in caplog.records)
 
 
 class TestEvaluationDashboard:
@@ -317,12 +314,12 @@ class TestEvaluationDashboard:
     def test_create_evaluation_dashboard_classification(self, tmp_path):
         """Test dashboard creation with classification metrics."""
         results = {
-            'metrics': {
-                'accuracy': 0.85,
-                'precision': 0.82,
-                'recall': 0.88,
-                'f1_score': 0.85,
-                'roc_auc': 0.90
+            "metrics": {
+                "accuracy": 0.85,
+                "precision": 0.82,
+                "recall": 0.88,
+                "f1_score": 0.85,
+                "roc_auc": 0.90,
             }
         }
 
@@ -336,19 +333,12 @@ class TestEvaluationDashboard:
 
         # Check HTML content
         html_content = html_file.read_text()
-        assert 'accuracy' in html_content.lower()
-        assert '0.85' in html_content or '0.8500' in html_content
+        assert "accuracy" in html_content.lower()
+        assert "0.85" in html_content or "0.8500" in html_content
 
     def test_create_evaluation_dashboard_regression(self, tmp_path):
         """Test dashboard creation with regression metrics."""
-        results = {
-            'metrics': {
-                'mse': 1.25,
-                'rmse': 1.12,
-                'mae': 0.95,
-                'r2': 0.87
-            }
-        }
+        results = {"metrics": {"mse": 1.25, "rmse": 1.12, "mae": 0.95, "r2": 0.87}}
 
         output_dir = tmp_path / "regression_dashboard"
         create_evaluation_dashboard(results, output_dir)
@@ -358,12 +348,12 @@ class TestEvaluationDashboard:
         assert html_file.exists()
 
         html_content = html_file.read_text()
-        assert 'mse' in html_content.lower()
-        assert 'r2' in html_content.lower()
+        assert "mse" in html_content.lower()
+        assert "r2" in html_content.lower()
 
     def test_create_evaluation_dashboard_empty_metrics(self, tmp_path):
         """Test dashboard creation with empty metrics."""
-        results = {'metrics': {}}
+        results = {"metrics": {}}
 
         output_dir = tmp_path / "empty_dashboard"
         create_evaluation_dashboard(results, output_dir)
@@ -385,7 +375,7 @@ class TestEvaluationDashboard:
 
     def test_create_evaluation_dashboard_creates_directory(self, tmp_path):
         """Test that dashboard creates directory if it doesn't exist."""
-        results = {'metrics': {'accuracy': 0.85}}
+        results = {"metrics": {"accuracy": 0.85}}
 
         output_dir = tmp_path / "nested" / "new" / "dashboard"
         create_evaluation_dashboard(results, output_dir)
@@ -399,6 +389,7 @@ class TestVisualizationErrorHandling:
     def test_save_roc_curve_handles_errors(self, tmp_path, caplog):
         """Test that ROC curve handles errors gracefully."""
         import logging
+
         caplog.set_level(logging.ERROR)
 
         # Invalid data (mismatched lengths)
@@ -409,11 +400,12 @@ class TestVisualizationErrorHandling:
         save_roc_curve(y_true, y_proba, output_path)
 
         # Should log error
-        assert any('Failed' in record.message for record in caplog.records)
+        assert any("Failed" in record.message for record in caplog.records)
 
     def test_save_residuals_handles_errors(self, tmp_path, caplog):
         """Test that residuals plot handles errors gracefully."""
         import logging
+
         caplog.set_level(logging.ERROR)
 
         # Invalid data
@@ -424,11 +416,12 @@ class TestVisualizationErrorHandling:
         save_residuals(y_true, y_pred, output_path)
 
         # Should log error instead of crashing
-        assert any('Failed' in record.message for record in caplog.records)
+        assert any("Failed" in record.message for record in caplog.records)
 
     def test_plot_correlation_matrix_handles_errors(self, tmp_path, caplog):
         """Test that correlation matrix handles errors gracefully."""
         import logging
+
         caplog.set_level(logging.WARNING)
 
         # Empty dataframe
@@ -439,4 +432,6 @@ class TestVisualizationErrorHandling:
 
         # Should handle error gracefully with a warning
         # The function logs a warning about not enough columns
-        assert len(caplog.records) > 0 or True  # Accept either warning or graceful handling
+        assert (
+            len(caplog.records) > 0 or True
+        )  # Accept either warning or graceful handling

@@ -27,7 +27,7 @@ def safe_filename(filename: str, max_length: int = 200) -> str:
 def save_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> None:
     """Save ROC curve plot."""
     try:
-        from sklearn.metrics import roc_curve, auc
+        from sklearn.metrics import auc, roc_curve
 
         fpr, tpr, _ = roc_curve(y_true, y_proba)
         roc_auc = auc(fpr, tpr)
@@ -51,7 +51,7 @@ def save_roc_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) ->
 def save_pr_curve(y_true: np.ndarray, y_proba: np.ndarray, path: str | Path) -> None:
     """Save Precision-Recall curve plot."""
     try:
-        from sklearn.metrics import precision_recall_curve, average_precision_score
+        from sklearn.metrics import average_precision_score, precision_recall_curve
 
         precision, recall, _ = precision_recall_curve(y_true, y_proba)
         ap = average_precision_score(y_true, y_proba)
@@ -178,7 +178,9 @@ def plot_correlation_matrix(data: pd.DataFrame, output_path: str | Path) -> None
             plt.close()
             logger.info(f"Correlation matrix saved: {output_path}")
         else:
-            logger.warning("Not enough numeric columns for correlation matrix (need >1)")
+            logger.warning(
+                "Not enough numeric columns for correlation matrix (need >1)"
+            )
     except Exception as e:
         logger.error(f"Failed to create correlation matrix: {e}")
 
