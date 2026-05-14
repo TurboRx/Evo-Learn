@@ -38,7 +38,7 @@ pytest-cov>=4.0.0
 pytest-xdist>=3.8.0
 
 # Code quality (dev)
-ruff==0.15.12
+ruff==0.15.13
 mypy>=1.0.0
 pre-commit>=3.0.0
 
